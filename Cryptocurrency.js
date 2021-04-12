@@ -14,6 +14,14 @@ class Transaction {
 		this.signature = null;
 	}
 
+  constructor(obj) {
+    this.sender = obj.sender;
+    this.recipient = obj.recipient;
+    this.amount = obj.amount;
+    this.fee = obj.fee;
+    this.signature = obj.signature;
+  }
+
 	calculateHash() {
 		return SHA256(this.sender + this.recipient + this.amount).toString();
 	}
@@ -44,6 +52,13 @@ class Cryptocurrency extends Blockchain {
 		// this.miningReward = 50;
 		this.pendingTransactions = [];
 	}
+
+  constructor(obj) {
+    super();
+    this.chain = obj.chain;
+    this.pendingTransactions = obj.pendingTransactions;
+    this.difficulty = obj.difficulty;
+  }
 
 	minePendingTransactions(miner) {
     this.pendingTransactions.push(new Transaction(null, miner, blockReward)); // miner's reward
