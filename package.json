@@ -1,8 +1,8 @@
 {
-  "name": "blockchain",
-  "version": "1.0.0",
+  "name": "blockchain-crypto",
+  "version": "1.0.1",
   "description": "blockchain service",
-  "main": "Block.js",
+  "main": "Cryptocurrency.js",
   "dependencies": {
     "crypto-js": "^4.0.0",
     "elliptic": "^6.5.4"
