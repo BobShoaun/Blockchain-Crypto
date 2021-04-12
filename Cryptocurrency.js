@@ -18,11 +18,19 @@ class Transaction {
 		return SHA256(this.sender + this.recepient + this.amount).toString();
 	}
 
-	sign(signingKey) {
-		if (signingKey.getPublic("hex") !== this.sender)
+	// sign2(signingKey) {
+	// 	if (signingKey.getPublic("hex") !== this.sender)
+	// 		throw new Error("Cannot sign transaction for other wallets");
+	// 	const hash = this.calculateHash();
+	// 	this.signature = signingKey.sign(hash, "base64").toDER("hex");
+	// }
+
+	sign(senderPrivateKey) {
+    const keyPair = ec.keyFromPrivate(senderPrivateKey, 'hex');
+		if (keyPair.getPublic("hex") !== this.sender)
 			throw new Error("Cannot sign transaction for other wallets");
 		const hash = this.calculateHash();
-		this.signature = signingKey.sign(hash, "base64").toDER("hex");
+		this.signature = keyPair.sign(hash, "base64").toDER("hex");
 	}
 
 	get isValid() {

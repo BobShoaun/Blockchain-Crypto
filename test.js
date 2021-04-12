@@ -8,21 +8,21 @@ let tom = ec.genKeyPair();
 let gina = ec.genKeyPair();
 
 let t1 = new Transaction(bob.getPublic('hex'), tom.getPublic('hex'), 100);
-t1.sign(bob);
+t1.sign(bob.getPrivate('hex'));
 bobcoin.addTransaction(t1);
 
 let t2 = new Transaction(tom.getPublic('hex'), gina.getPublic('hex'), 50);
-t2.sign(tom);
+t2.sign(tom.getPrivate('hex'));
 bobcoin.addTransaction(t2);
 
 bobcoin.minePendingTransactions(bob.getPublic('hex'));
 
 let t3 = new Transaction(tom.getPublic('hex'), bob.getPublic('hex'), 25);
-t3.sign(tom);
+t3.sign(tom.getPrivate('hex'));
 bobcoin.addTransaction(t3);
 
 let t4 = new Transaction(bob.getPublic('hex'), gina.getPublic('hex'), 10);
-t4.sign(bob);
+t4.sign(bob.getPrivate('hex'));
 bobcoin.addTransaction(t4);
 
 bobcoin.minePendingTransactions(gina.getPublic('hex'));
