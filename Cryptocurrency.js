@@ -10,24 +10,22 @@ class Transaction {
 		this.sender = sender;
 		this.recipient = recipient;
 		this.amount = amount;
-    this.fee = fee;
+		this.fee = fee;
 		this.signature = null;
 	}
 
-  constructor(obj) {
-    this.sender = obj.sender;
-    this.recipient = obj.recipient;
-    this.amount = obj.amount;
-    this.fee = obj.fee;
-    this.signature = obj.signature;
-  }
+	static parse(obj) {
+		const transaction = new Transaction(obj.sender, obj.recipient, obj.amount, obj.fee);
+		transaction.signature = obj.signature;
+		return transaction;
+	}
 
 	calculateHash() {
 		return SHA256(this.sender + this.recipient + this.amount).toString();
 	}
 
 	sign(senderPrivateKey) {
-    const keyPair = ec.keyFromPrivate(senderPrivateKey, 'hex');
+		const keyPair = ec.keyFromPrivate(senderPrivateKey, "hex");
 		if (keyPair.getPublic("hex") !== this.sender)
 			throw new Error("Cannot sign transaction for other wallets");
 		const hash = this.calculateHash();
@@ -35,10 +33,10 @@ class Transaction {
 	}
 
 	get isValid() {
-    if (this.sender == null) // miner's reward
-      return this.amount == blockReward;
-		if (this.recipient == null || this.amount == null || this.amount < 0)
-			return false;
+		if (this.sender == null)
+			// miner's reward
+			return this.amount == blockReward;
+		if (this.recipient == null || this.amount == null || this.amount < 0) return false;
 		if (!this.signature || this.signature.length === 0) return false;
 		const key = ec.keyFromPublic(this.sender, "hex");
 		const hash = this.calculateHash();
@@ -53,15 +51,16 @@ class Cryptocurrency extends Blockchain {
 		this.pendingTransactions = [];
 	}
 
-  constructor(obj) {
-    super();
-    this.chain = obj.chain;
-    this.pendingTransactions = obj.pendingTransactions;
-    this.difficulty = obj.difficulty;
+  static parse(obj) {
+    const crypto = new Cryptocurrency();
+    crypto.pendingTransactions = obj.pendingTransactions;
+    crypto.chain = obj.chain;
+    crypto.difficulty = obj.difficulty;
+    return crypto;
   }
 
 	minePendingTransactions(miner) {
-    this.pendingTransactions.push(new Transaction(null, miner, blockReward)); // miner's reward
+		this.pendingTransactions.push(new Transaction(null, miner, blockReward)); // miner's reward
 		let block = new Block(new Date(), this.pendingTransactions);
 		this.addBlock(block, miner);
 		this.pendingTransactions = [];
