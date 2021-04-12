@@ -1,4 +1,4 @@
-const { Blockchain, Block } = require("./Block.js");
+const { Blockchain, Block } = require("./Blockchain.js");
 const SHA256 = require("crypto-js/sha256");
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");

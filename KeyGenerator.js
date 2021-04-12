@@ -1,10 +1,12 @@
-const EC = require('elliptic').ec;
-const ec = new EC('secp256k1');
+const EC = require("elliptic").ec;
+const ec = new EC("secp256k1");
 
-const key = ec.genKeyPair();
-const publicKey = key.getPublic('hex');
-const privateKey = key.getPrivate('hex');
+function generateKeyPair() {
+	return ec.genKeyPair();
+}
 
-console.log(publicKey);
-console.log(privateKey);
+function getKeyPair(privateKey) {
+	return ec.keyFromPrivate(privateKey, "hex");
+}
 
+module.exports = { generateKeyPair, getKeyPair };
