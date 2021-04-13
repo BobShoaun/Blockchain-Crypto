@@ -75,8 +75,8 @@ class Cryptocurrency extends Blockchain {
 		let balance = 0;
 		for (const block of this.chain) {
 			for (const trans of block.data) {
-				if (trans.from === address) balance -= trans.amount;
-				if (trans.to === address) balance += trans.amount;
+				if (trans.sender === address) balance -= trans.amount;
+				if (trans.recipient === address) balance += trans.amount;
 			}
 		}
 		return balance;
