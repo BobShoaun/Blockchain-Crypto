@@ -64,6 +64,7 @@ class Cryptocurrency extends Blockchain {
 		let block = new Block(new Date(), this.pendingTransactions);
 		this.addBlock(block, miner);
 		this.pendingTransactions = [];
+    return block;
 	}
 
 	addTransaction(transaction) {
