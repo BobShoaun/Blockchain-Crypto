@@ -15,7 +15,7 @@ let t2 = new Transaction(tom.getPublic('hex'), gina.getPublic('hex'), 50);
 t2.sign(tom.getPrivate('hex'));
 bobcoin.addTransaction(t2);
 
-bobcoin.minePendingTransactions(bob.getPublic('hex'));
+let block1 = bobcoin.mineTransactions(bob.getPublic('hex'), bobcoin.getMempool(bobcoin.heighestBlock), bobcoin.heighestBlock);
 
 let t3 = new Transaction(tom.getPublic('hex'), bob.getPublic('hex'), 25);
 t3.sign(tom.getPrivate('hex'));
@@ -25,7 +25,7 @@ let t4 = new Transaction(bob.getPublic('hex'), gina.getPublic('hex'), 10);
 t4.sign(bob.getPrivate('hex'));
 bobcoin.addTransaction(t4);
 
-bobcoin.minePendingTransactions(gina.getPublic('hex'));
+let block2 = bobcoin.mineTransactions(gina.getPublic('hex'), bobcoin.getMempool(block1), bobcoin.heighestBlock);
 
 console.log(JSON.stringify(bobcoin.chain, null, 2));
 

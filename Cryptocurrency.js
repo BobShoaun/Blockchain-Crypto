@@ -12,6 +12,9 @@ class Transaction {
 		this.amount = amount;
 		this.fee = fee;
 		this.signature = null;
+    this.inputs = [];
+    this.outputs = [];
+    this.hash = this.calculateHash();
 	}
 
 	static parse(obj) {
@@ -21,7 +24,7 @@ class Transaction {
 	}
 
 	calculateHash() {
-		return SHA256(this.sender + this.recipient + this.amount).toString();
+		return SHA256(this.sender + this.recipient + this.amount + this.fee).toString();
 	}
 
 	sign(senderPrivateKey) {
@@ -49,6 +52,7 @@ class Cryptocurrency extends Blockchain {
 		super();
 		// this.miningReward = 50;
 		this.pendingTransactions = [];
+    this.transactions = [];
 	}
 
   static parse(obj) {
@@ -67,9 +71,37 @@ class Cryptocurrency extends Blockchain {
     return block;
 	}
 
+  mineTransactions(miner, transactions, previousBlock) {
+    let block = new Block(previousBlock.height + 1, new Date(), transactions);
+    let mempool = this.getMempool(previousBlock);
+    
+    if (!transactions.every(transaction => mempool.includes(transaction))) {
+      // return false
+      throw new Error("Cannot mine transactions not in mempool");
+    }
+
+    this.addBlock(block, miner);
+    return block;
+  }
+
+  getMempool(currentBlock) {
+    let currentChain = this.chain.filter(b => b.height <= currentBlock.height);
+    let confirmedTransactions = [];
+    for(let previousBlock of currentChain) {
+      if (Array.isArray(previousBlock.data)) {
+        confirmedTransactions.push(...previousBlock.data);
+      }
+    }
+    return this.transactions.filter(transaction => !confirmedTransactions.some(tx => tx.hash === transaction.hash));
+  }
+
+  getUTXOset(block) {
+    
+  }
+
 	addTransaction(transaction) {
 		if (!transaction.isValid) throw new Error("Cannot add invalid transaction to chain");
-		this.pendingTransactions.push(transaction);
+		this.transactions.push(transaction);
 	}
 
 	getBalance(address) {
