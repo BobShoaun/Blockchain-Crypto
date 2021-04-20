@@ -41,7 +41,7 @@ class Blockchain {
 		return this.chain[this.chain.length - 1];
 	}
 
-  get heighestBlock() {
+  get highestBlock() {
     return this.chain.reduce((prev, current) => prev.height > current.height ? prev : current);
   }
 

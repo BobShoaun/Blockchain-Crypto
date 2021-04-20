@@ -57,7 +57,7 @@ class Cryptocurrency extends Blockchain {
 
   static parse(obj) {
     const crypto = new Cryptocurrency();
-    crypto.pendingTransactions = obj.pendingTransactions;
+    crypto.transactions = obj.transactions;
     crypto.chain = obj.chain;
     crypto.difficulty = obj.difficulty;
     return crypto;
@@ -75,7 +75,7 @@ class Cryptocurrency extends Blockchain {
     let block = new Block(previousBlock.height + 1, new Date(), transactions);
     let mempool = this.getMempool(previousBlock);
     
-    if (!transactions.every(transaction => mempool.includes(transaction))) {
+    if (!transactions.every(transaction => mempool.some(tx => tx.hash === transaction.hash))) {
       // return false
       throw new Error("Cannot mine transactions not in mempool");
     }
