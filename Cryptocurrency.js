@@ -31,19 +31,21 @@ class Transaction {
 		const keyPair = ec.keyFromPrivate(senderPrivateKey, "hex");
 		if (keyPair.getPublic("hex") !== this.sender)
 			throw new Error("Cannot sign transaction for other wallets");
-		const hash = this.calculateHash();
-		this.signature = keyPair.sign(hash, "base64").toDER("hex");
+		// const hash = this.calculateHash();
+		this.signature = keyPair.sign(this.hash, "base64").toDER("hex");
 	}
 
 	get isValid() {
 		if (this.sender == null)
 			// miner's reward
-			return this.amount == blockReward;
-		if (this.recipient == null || this.amount == null || this.amount < 0) return false;
-		if (!this.signature || this.signature.length === 0) return false;
-		const key = ec.keyFromPublic(this.sender, "hex");
+			return this.amount == blockReward; // miner reward checks out
+		if (this.recipient == null || this.amount == null || this.amount < 0) return false; // individual fields are valid
+		if (!this.signature || this.signature.length === 0) return false; // signature is present
 		const hash = this.calculateHash();
-		return key.verify(hash, this.signature);
+    if (hash !== this.hash) return false; // hash is valid
+
+		const key = ec.keyFromPublic(this.sender, "hex");
+		return key.verify(hash, this.signature); // signature is valid
 	}
 }
 
@@ -72,15 +74,17 @@ class Cryptocurrency extends Blockchain {
 	}
 
   mineTransactions(miner, transactions, previousBlock) {
-    let block = new Block(previousBlock.height + 1, new Date(), transactions);
-    let mempool = this.getMempool(previousBlock);
+    const mempool = this.getMempool(previousBlock);
     
     if (!transactions.every(transaction => mempool.some(tx => tx.hash === transaction.hash))) {
       // return false
       throw new Error("Cannot mine transactions not in mempool");
     }
 
-    this.addBlock(block, miner);
+    const coinbaseTransaction = new Transaction(null, miner, blockReward) // miner's reward
+    const block = new Block(previousBlock.height + 1, new Date(), [coinbaseTransaction, ...transactions]);
+
+    this.addBlock(block, miner, previousBlock);
     return block;
   }
 

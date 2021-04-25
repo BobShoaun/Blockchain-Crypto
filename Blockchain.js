@@ -9,6 +9,7 @@ class Block {
 		this.nonce = 0;
 		this.hash = this.calculateHash();
     this.previous = '';
+    this.miner = null;
 	}
 
 	calculateHash() {
@@ -33,7 +34,7 @@ class Block {
 
 class Blockchain {
 	constructor() {
-		this.chain = [new Block(0, new Date(), "Genesis")];
+		this.chain = [new Block(0, new Date(), [])]; // Genesis block
 		this.difficulty = 3;
 	}
 
@@ -45,8 +46,8 @@ class Blockchain {
     return this.chain.reduce((prev, current) => prev.height > current.height ? prev : current);
   }
 
-	addBlock(block, miner) {
-		block.previousHash = this.latestBlock.hash;
+	addBlock(block, miner, previousBlock) {
+		block.previousHash = previousBlock.hash;
 		block.mine(miner, this.difficulty);
 		this.chain.push(block);
 	}
