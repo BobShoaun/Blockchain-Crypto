@@ -9,7 +9,8 @@ const {
   isBlockchainValid,
   calculateBalance,
   addBlockToBlockchain,
-  calculateUTXOSet
+  calculateUTXOSet,
+  getHighestValidBlock
 } = require("./CryptoClient");
 
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
@@ -46,7 +47,6 @@ console.log(isTransactionValid(t1));
 console.log(isTransactionValid(t2));
 console.log(isTransactionValid(t3));
 
-console.log(genesis)
 console.log(isBlockValid(genesis));
 console.log(isBlockValid(block1));
 console.log(isBlockValid(block2));

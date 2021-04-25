@@ -204,6 +204,16 @@ function calculateBalance(blockchain, headBlock, address) {
 	return utxoSet.reduce((prev, curr) => prev + curr.amount, 0);
 }
 
+function getHighestValidBlock(blockchain) {
+	const maxHeight = blockchain[blockchain.length - 1].height;
+	let earliestBlock = blockchain[blockchain.length - 1];
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].height !== maxHeight) break;
+		if (blockchain[i].timestamp < earliestBlock.timestamp) earliestBlock = blockchain[i];
+	}
+	return earliestBlock;
+}
+
 // returns new blockchain with invalid and unecessasary blocks removed
 function pruneBlockchain(blockchain) {}
 
@@ -315,6 +325,7 @@ module.exports = {
 	mineNewBlock,
 	createBlockchain,
 	addBlockToBlockchain,
+	getHighestValidBlock,
 	createAndSignTransaction,
 	calculateBlockHash,
 	calculateTransactionHash,
