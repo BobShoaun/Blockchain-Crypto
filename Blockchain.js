@@ -1,40 +1,42 @@
 const SHA256 = require("crypto-js/sha256");
 
 class Block {
-	constructor(height, timestamp, data, previousHash = null) {
-    this.height = height;
-		this.timestamp = timestamp;
+	constructor(height, data = null, dataIsValid = () => true) {
+		this.height = height;
 		this.data = data;
-		this.previousHash = previousHash;
+		this.timestamp = new Date();
+		this.dataIsValid = dataIsValid; // function to check if data is valid
+		this.previousHash = null;
 		this.nonce = 0;
 		this.hash = this.calculateHash();
-    this.previous = '';
-    this.miner = null;
+		this.miner = null;
 	}
 
 	calculateHash() {
 		return SHA256(
-			this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce
+			this.height + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce
 		).toString();
 	}
 
 	mine(miner, difficulty) {
-    while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
-      this.nonce++;
+    this.miner = miner;
+		while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+			this.nonce++;
 			this.hash = this.calculateHash();
 		}
-    this.miner = miner;
 	}
 
 	get isValid() {
-		for (const datum of this.data) if (!datum.isValid) return false;
+    if (!this.miner) return false; // miner valid
+		if (this.height < 0) return false; // height valid
+		if (!this.dataIsValid(this.data, this.miner)) return false; // all data is valid
 		return true;
 	}
 }
 
 class Blockchain {
 	constructor() {
-		this.chain = [new Block(0, new Date(), [])]; // Genesis block
+		this.chain = [new Block(0)]; // Genesis block
 		this.difficulty = 3;
 	}
 
@@ -42,9 +44,9 @@ class Blockchain {
 		return this.chain[this.chain.length - 1];
 	}
 
-  get highestBlock() {
-    return this.chain.reduce((prev, current) => prev.height > current.height ? prev : current);
-  }
+	get highestBlock() {
+		return this.chain.reduce((prev, current) => (prev.height > current.height ? prev : current));
+	}
 
 	addBlock(block, miner, previousBlock) {
 		block.previousHash = previousBlock.hash;
