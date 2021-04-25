@@ -8,7 +8,7 @@ const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 3; // in leading zeros
 
-const utxoSets = [];
+const utxoSets = []; // cached UTXOsets for efficiency
 
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
@@ -29,8 +29,7 @@ function createBlockchain(blocks) {
 function addBlockToBlockchain(blockchain, block) {
 	let i = blockchain.length - 1;
 	for (; i >= 0; i--) {
-		if (blockchain[i].height > block.height) continue;
-		break;
+		if (blockchain[i].height <= block.height) break;
 	}
 	blockchain.splice(i + 1, 0, block);
 }
@@ -144,7 +143,6 @@ function calculateUTXOHash(utxo) {
 function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recipient, amount, fee) {
 	const utxoSet = calculateUTXOSet(blockchain, headBlock);
 
-	// console.log(utxoSet);
 	// pick utxos from front to back.
 	let utxoAmount = 0;
 	const inputs = [];
@@ -195,6 +193,8 @@ function calculateBlockReward(height) {
 }
 
 function calculateBlockDifficulty(height) {
+	if (height % difficultyRecalcHeight === 0) {
+	}
 	return initialBlockDifficulty;
 }
 
@@ -204,7 +204,7 @@ function calculateBalance(blockchain, headBlock, address) {
 	return utxoSet.reduce((prev, curr) => prev + curr.amount, 0);
 }
 
-// returns new blockchain with invalid and uncessasary blocks removed
+// returns new blockchain with invalid and unecessasary blocks removed
 function pruneBlockchain(blockchain) {}
 
 function isBlockchainValid(blockchain, headBlock) {
@@ -233,18 +233,40 @@ function isBlockValid(block) {
 	const difficulty = calculateBlockDifficulty(block.height);
 	if (block.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) return false; // block hash fits difficulty
 
-	let minerFound = false;
+	const totalInputAmount = block.transactions.reduce(
+		(total, tx) => total + tx.inputs.reduce((total, input) => total + input.amount, 0),
+		0
+	);
+
+	const totalOutputAmount = block.transactions.reduce(
+		(total, tx) => total + tx.outputs.reduce((total, output) => total + output.amount, 0),
+		0
+	);
+
+	const fee = totalInputAmount - totalOutputAmount;
+
+	let coinbaseFound = false;
+	let feeFound = false;
+	let miner = null;
+
 	for (const transaction of block.transactions) {
-		if (!transaction.sender) {
-			// coinbase transaction
-			if (!transaction.recipient) return false; // coinbase to invalid miner.
-			if (minerFound) return false; // found more than one coinbase transaction.
-			if (transaction.amount !== calculateBlockReward(block.height)) return false; // wrong block reward.
-			minerFound = true;
+		if (transaction.inputs.length === 0) {
+			// coinbase or fee
+			if (transaction.outputs.length !== 1) return false; // wrong length of output
+			if (!coinbaseFound) {
+				if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+				miner = transaction.outputs[0].address;
+				if (!miner) return false;
+				coinbaseFound = true;
+			} else if (!feeFound) {
+				if (transaction.outputs[0].amount !== fee) return false; // invalid fee
+				if (transaction.outputs[0].miner !== miner) return false; // fee reward not same as miner
+				feeFound = true;
+			} else return false; // more than one fee or coinbase
 			continue;
 		}
 		if (!isTransactionValid(transaction)) return false;
-	} // all transactions valid
+	}
 	return true;
 }
 
@@ -291,16 +313,16 @@ module.exports = {
 	getKeyPair,
 	mineGenesisBlock,
 	mineNewBlock,
-	calculateBlockHash,
+	createBlockchain,
+	addBlockToBlockchain,
 	createAndSignTransaction,
+	calculateBlockHash,
 	calculateTransactionHash,
 	calculateBlockReward,
 	calculateBlockDifficulty,
+	calculateUTXOSet,
+	calculateBalance,
 	isBlockchainValid,
 	isBlockValid,
 	isTransactionValid,
-	calculateBalance,
-	createBlockchain,
-	addBlockToBlockchain,
-	calculateUTXOSet,
 };

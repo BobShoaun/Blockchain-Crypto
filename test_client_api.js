@@ -28,7 +28,7 @@ const t1 = createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20
 
 const block1 = mineNewBlock(genesis, [t1], tompk);
 addBlockToBlockchain(blockchain, block1);
-console.log("block1:", calculateUTXOSet(blockchain, block1));
+// console.log("block1:", calculateUTXOSet(blockchain, block1));
 
 const t2 = createAndSignTransaction(blockchain, block1, bobsk, bobpk, tompk, 30, 0);
 const t3 = createAndSignTransaction(blockchain, block1, tomsk, tompk, ginpk, 70, 0);
@@ -36,14 +36,21 @@ const t3 = createAndSignTransaction(blockchain, block1, tomsk, tompk, ginpk, 70,
 
 const block2 = mineNewBlock(block1, [t2, t3], ginpk);
 addBlockToBlockchain(blockchain, block2);
-console.log("block2:", calculateUTXOSet(blockchain, block2));
+// console.log("block2:", calculateUTXOSet(blockchain, block2));
 
 
 // console.log(calculateUTXOSet(blockchain, block1));
 // console.log(t1);
+
 console.log(isTransactionValid(t1));
 console.log(isTransactionValid(t2));
 console.log(isTransactionValid(t3));
+
+console.log(genesis)
+console.log(isBlockValid(genesis));
+console.log(isBlockValid(block1));
+console.log(isBlockValid(block2));
+console.log(isBlockchainValid(blockchain, block2));
 
 console.log("bob:", calculateBalance(blockchain, block2, bobpk))
 console.log("tom:", calculateBalance(blockchain, block2, tompk))
