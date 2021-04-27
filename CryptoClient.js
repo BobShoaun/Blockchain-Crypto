@@ -8,7 +8,9 @@ const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 3; // in leading zeros
 
-const utxoSets = []; // cached UTXOsets for efficiency
+const utxoSets = {}; // cached UTXOsets for efficiency
+const mempools = []; // cached mempools for each block
+const transactions = []; // all transactions since the beginning of the blockchain
 
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
@@ -34,9 +36,28 @@ function addBlockToBlockchain(blockchain, block) {
 	blockchain.splice(i + 1, 0, block);
 }
 
+function addTransactionToMempool(blockchain, transaction) {
+  
+}
+
+function calculateMempool(blockchain, headBlock) {
+  let mempool = mempools.find(mempool => mempool.blockHash === headBlock.hash);
+  if (mempool) return mempool.pool;
+
+  mempool = [];
+  for (let i = blockchain.length - 1; i >= 0; i--) {
+    if (blockchain[i].hash === headBlock.previousHash) {
+      mempool = [...calculateMempool(blockchain, blockchain[i])]; // get mempool of previous block
+      break;
+    }
+  }
+
+  
+}
+
 function calculateUTXOSet(blockchain, headBlock) {
-	let utxoSet = utxoSets.find(utxoSet => utxoSet.blockHash == headBlock.hash);
-	if (utxoSet) return utxoSet.set;
+  if (headBlock.hash in utxoSets)
+    return utxoSets[headBlock.hash];
 
 	utxoSet = [];
 	for (let i = blockchain.length - 1; i >= 0; i--) {
@@ -57,8 +78,8 @@ function calculateUTXOSet(blockchain, headBlock) {
 		}
 		for (const output of transaction.outputs) utxoSet.push(output);
 	}
-	utxoSets.push({ blockHash: headBlock.hash, set: utxoSet });
 
+  utxoSets[headBlock.hash] = utxoSet;
 	return utxoSet;
 }
 
