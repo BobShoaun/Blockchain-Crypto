@@ -9,7 +9,7 @@ const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 3; // in leading zeros
 
 const utxoSets = {}; // cached UTXOsets for efficiency
-const mempools = []; // cached mempools for each block
+const transactionSets = {}; // cached txSet for efficiency
 const transactions = []; // all transactions since the beginning of the blockchain
 
 function generateKeyPair() {
@@ -36,30 +36,37 @@ function addBlockToBlockchain(blockchain, block) {
 	blockchain.splice(i + 1, 0, block);
 }
 
-function addTransactionToMempool(blockchain, transaction) {
-  
+function addTransaction(transaction) {
+	transactions.push(transaction);
 }
 
 function calculateMempool(blockchain, headBlock) {
-  let mempool = mempools.find(mempool => mempool.blockHash === headBlock.hash);
-  if (mempool) return mempool.pool;
+	const transactionSet = calculateTransactionSet(blockchain, headBlock);
+	return transactions.filter(tx => !transactionSet.some(txSet => txSet.hash === tx.hash));
+}
 
-  mempool = [];
-  for (let i = blockchain.length - 1; i >= 0; i--) {
-    if (blockchain[i].hash === headBlock.previousHash) {
-      mempool = [...calculateMempool(blockchain, blockchain[i])]; // get mempool of previous block
-      break;
-    }
-  }
+function getPreviousBlock(blockchain, block) {
+	for (let i = blockchain.length - 1; i >= 0; i--)
+		if (blockchain[i].hash === block.previousHash) return blockchain[i];
+	return null;
+}
 
-  
+function calculateTransactionSet(blockchain, headBlock) {
+	if (headBlock.hash in transactionSets) return transactionSets[headBlock.hash];
+
+	const transactionSet = [
+		...calculateTransactionSet(blockchain, getPreviousBlock(blockchain, headBlock)),
+		...headBlock.transactions,
+	];
+
+	transactionSets[headBlock.hash] = transactionSet;
+	return transactionSet;
 }
 
 function calculateUTXOSet(blockchain, headBlock) {
-  if (headBlock.hash in utxoSets)
-    return utxoSets[headBlock.hash];
+	if (headBlock.hash in utxoSets) return utxoSets[headBlock.hash];
 
-	utxoSet = [];
+	let utxoSet = [];
 	for (let i = blockchain.length - 1; i >= 0; i--) {
 		if (blockchain[i].hash === headBlock.previousHash) {
 			utxoSet = [...calculateUTXOSet(blockchain, blockchain[i])];
@@ -79,7 +86,7 @@ function calculateUTXOSet(blockchain, headBlock) {
 		for (const output of transaction.outputs) utxoSet.push(output);
 	}
 
-  utxoSets[headBlock.hash] = utxoSet;
+	utxoSets[headBlock.hash] = utxoSet;
 	return utxoSet;
 }
 
@@ -347,6 +354,8 @@ module.exports = {
 	createBlockchain,
 	addBlockToBlockchain,
 	getHighestValidBlock,
+	addTransaction,
+	calculateMempool,
 	createAndSignTransaction,
 	calculateBlockHash,
 	calculateTransactionHash,
