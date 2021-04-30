@@ -5,12 +5,12 @@ const {
 	createAndSignTransaction,
 	isTransactionValid,
 	generateKeyPair,
-  createBlockchain,
-  isBlockchainValid,
-  calculateBalance,
-  addBlockToBlockchain,
-  calculateUTXOSet,
-  getHighestValidBlock
+	createBlockchain,
+	isBlockchainValid,
+	calculateBalance,
+	addBlockToBlockchain,
+	calculateUTXOSet,
+	getHighestValidBlock,
 } = require("./CryptoClient");
 
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
@@ -39,7 +39,6 @@ const block2 = mineNewBlock(block1, [t2, t3], ginpk);
 addBlockToBlockchain(blockchain, block2);
 // console.log("block2:", calculateUTXOSet(blockchain, block2));
 
-
 // console.log(calculateUTXOSet(blockchain, block1));
 // console.log(t1);
 
@@ -52,12 +51,11 @@ console.log(isBlockValid(block1));
 console.log(isBlockValid(block2));
 console.log(isBlockchainValid(blockchain, block2));
 
-console.log("bob:", calculateBalance(blockchain, block2, bobpk))
-console.log("tom:", calculateBalance(blockchain, block2, tompk))
-console.log("gin:", calculateBalance(blockchain, block2, ginpk))
+console.log("bob:", calculateBalance(blockchain, block2, bobpk));
+console.log("tom:", calculateBalance(blockchain, block2, tompk));
+console.log("gin:", calculateBalance(blockchain, block2, ginpk));
 
 // const t2 = createAndSignTransaction(tomsk, tompk, bobpk, 100, 0);
-
 
 // isBlockValid(genesis);
 // console.log(genesis);
