@@ -6,12 +6,13 @@ const ec = new EC("secp256k1");
 const blockRewardHalflife = 10; // in block height
 const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
-const initialBlockDifficulty = 3; // in leading zeros
+const initialBlockDifficulty = 2; // in leading zeros
 
-const utxoSets = {}; // cached UTXOsets for efficiency
-const transactionSets = {}; // cached txSet for efficiency
-const transactions = []; // all transactions since the beginning of the blockchain
+let utxoSets = {}; // cached UTXOsets for efficiency
+let transactionSets = {}; // cached txSet for efficiency
+let transactions = []; // all transactions ever
 
+// TODO find better elliptic curve library
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
 	return { sk: keyPair.getPrivate("hex"), pk: keyPair.getPublic("hex") };
@@ -20,6 +21,12 @@ function generateKeyPair() {
 function getKeyPair(secretKey) {
 	const keyPair = ec.keyFromPrivate(secretKey, "hex");
 	return { sk: keyPair.getPrivate("hex"), pk: keyPair.getPublic("hex") };
+}
+
+function resetCache() {
+	utxoSets = {};
+	transactionSets = {};
+	transactions = [];
 }
 
 function createBlockchain(blocks) {
@@ -52,6 +59,8 @@ function getPreviousBlock(blockchain, block) {
 }
 
 function calculateTransactionSet(blockchain, headBlock) {
+	if (!headBlock) return [];
+
 	if (headBlock.hash in transactionSets) return transactionSets[headBlock.hash];
 
 	const transactionSet = [
@@ -64,15 +73,10 @@ function calculateTransactionSet(blockchain, headBlock) {
 }
 
 function calculateUTXOSet(blockchain, headBlock) {
+	if (!headBlock) return [];
 	if (headBlock.hash in utxoSets) return utxoSets[headBlock.hash];
 
-	let utxoSet = [];
-	for (let i = blockchain.length - 1; i >= 0; i--) {
-		if (blockchain[i].hash === headBlock.previousHash) {
-			utxoSet = [...calculateUTXOSet(blockchain, blockchain[i])];
-			break;
-		}
-	}
+	const utxoSet = [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))];
 
 	for (const transaction of headBlock.transactions) {
 		for (const input of transaction.inputs) {
@@ -366,4 +370,5 @@ module.exports = {
 	isBlockchainValid,
 	isBlockValid,
 	isTransactionValid,
+	resetCache,
 };
