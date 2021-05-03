@@ -7,6 +7,7 @@ const blockRewardHalflife = 10; // in block height
 const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 1; // in leading zeros
+const targetBlockTime = 5 * 60; // 5 minutes
 
 let utxoSets = {}; // cached UTXOsets for efficiency
 let transactionSets = {}; // cached txSet for efficiency
@@ -172,6 +173,7 @@ function mineBlock(block, miner) {
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 	const difficulty = calculateBlockDifficulty(block.height);
 	do {
+		// TODO: better mining algorithm
 		block.nonce++;
 		block.hash = calculateBlockHash(block);
 	} while (block.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0"));
