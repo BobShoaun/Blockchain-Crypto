@@ -10,7 +10,6 @@ const {
 	addBlockToBlockchain,
 	calculateUTXOSet,
 	getHighestValidBlock,
-	addTransaction,
 	generateKeyPair,
 	getKeyPair,
 	calculateMempool,
@@ -44,30 +43,31 @@ test("mempool working", () => {
 	resetCache();
 	const genesis = mineGenesisBlock(bobpk);
 	const blockchain = createBlockchain([genesis]);
+	const transactions = [];
 
 	const tx1 = createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20, 0);
-	addTransaction(tx1);
-	const mp1 = calculateMempool(blockchain, genesis);
+	transactions.push(tx1);
+	const mp1 = calculateMempool(blockchain, genesis, transactions);
 	expect(mp1).toEqual([tx1]);
 
 	const block1 = mineNewBlock(genesis, mp1, bobpk);
 	addBlockToBlockchain(blockchain, block1);
 
-	expect(calculateMempool(blockchain, block1)).toEqual([]);
-	expect(calculateMempool(blockchain, genesis)).toEqual([tx1]);
+	expect(calculateMempool(blockchain, block1, transactions)).toEqual([]);
+	expect(calculateMempool(blockchain, genesis, transactions)).toEqual([tx1]);
 
 	const tx2 = createAndSignTransaction(blockchain, block1, bobsk, bobpk, ginpk, 30, 0);
-	addTransaction(tx2);
+	transactions.push(tx2);
 
-	expect(calculateMempool(blockchain, block1)).toEqual([tx2]);
+	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx2]);
 
 	const tx3 = createAndSignTransaction(blockchain, block1, bobsk, bobpk, ginpk, 30, 0); // double spend
-	addTransaction(tx3);
+	transactions.push(tx3);
 
 	expect(isTransactionValid(tx3)).toBe(true); // has not been added to blockchain so valid by itself
-	expect(calculateMempool(blockchain, block1)).toEqual([tx2, tx3]);
+	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx2, tx3]);
 
-	const block2 = mineNewBlock(block1, calculateMempool(blockchain, block1), tompk);
+	const block2 = mineNewBlock(block1, calculateMempool(blockchain, block1, transactions), tompk);
 	addBlockToBlockchain(blockchain, block2);
 
 	expect(isBlockValid(block2)).toBe(true); // why
@@ -78,22 +78,23 @@ test("double spending", () => {
 	resetCache();
 	const genesis = mineGenesisBlock(bobpk);
 	const blockchain = createBlockchain([genesis]);
+	const transactions = [];
 
-	addTransaction(createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20, 0));
-	const block1 = mineNewBlock(genesis, calculateMempool(blockchain, genesis), bobpk);
+	transactions.push(createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20, 0));
+	const block1 = mineNewBlock(genesis, calculateMempool(blockchain, genesis, transactions), bobpk);
 	addBlockToBlockchain(blockchain, block1);
 
-	expect(calculateMempool(blockchain, block1)).toEqual([]);
+	expect(calculateMempool(blockchain, block1, transactions)).toEqual([]);
 
 	const tx1 = createAndSignTransaction(blockchain, block1, bobsk, bobpk, ginpk, 30, 0);
 	const tx2 = createAndSignTransaction(blockchain, block1, tomsk, tompk, ginpk, 20, 0);
-	addTransaction(tx1);
-	addTransaction(tx2);
-	expect(calculateMempool(blockchain, block1)).toEqual([tx1, tx2]);
-	const block2 = mineNewBlock(block1, calculateMempool(blockchain, block1), tompk);
+	transactions.push(tx1, tx2);
+
+	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx1, tx2]);
+	const block2 = mineNewBlock(block1, calculateMempool(blockchain, block1, transactions), tompk);
 	addBlockToBlockchain(blockchain, block2);
 
-	expect(calculateMempool(blockchain, block2)).toEqual([]);
+	expect(calculateMempool(blockchain, block2, transactions)).toEqual([]);
 
 	expect(calculateBalance(blockchain, block2, bobpk)).toBe(50);
 	expect(calculateBalance(blockchain, block2, tompk)).toBe(50);
@@ -102,7 +103,7 @@ test("double spending", () => {
 	expect(isBlockchainValid(blockchain, block2)).toBe(true);
 
 	const tx3 = createAndSignTransaction(blockchain, block1, tomsk, tompk, ginpk, 60, 0);
-	addTransaction(tx3);
+	transactions.push(tx3);
 
 	expect(isTransactionValid(tx3)).toBe(false);
 });

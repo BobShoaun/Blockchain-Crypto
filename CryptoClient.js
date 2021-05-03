@@ -6,11 +6,10 @@ const ec = new EC("secp256k1");
 const blockRewardHalflife = 10; // in block height
 const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
-const initialBlockDifficulty = 3; // in leading zeros
+const initialBlockDifficulty = 1; // in leading zeros
 
 let utxoSets = {}; // cached UTXOsets for efficiency
 let transactionSets = {}; // cached txSet for efficiency
-let transactions = []; // all transactions ever
 
 // TODO find better elliptic curve library
 function generateKeyPair() {
@@ -26,7 +25,6 @@ function getKeyPair(secretKey) {
 function resetCache() {
 	utxoSets = {};
 	transactionSets = {};
-	transactions = [];
 }
 
 function createBlockchain(blocks) {
@@ -43,11 +41,7 @@ function addBlockToBlockchain(blockchain, block) {
 	blockchain.splice(i + 1, 0, block);
 }
 
-function addTransaction(transaction) {
-	transactions.push(transaction);
-}
-
-function calculateMempool(blockchain, headBlock) {
+function calculateMempool(blockchain, headBlock, transactions) {
 	const transactionSet = calculateTransactionSet(blockchain, headBlock);
 	return transactions.filter(tx => !transactionSet.some(txSet => txSet.hash === tx.hash));
 }
@@ -404,7 +398,6 @@ module.exports = {
 	createBlockchain,
 	addBlockToBlockchain,
 	getHighestValidBlock,
-	addTransaction,
 	calculateMempool,
 	createAndSignTransaction,
 	calculateBlockHash,
