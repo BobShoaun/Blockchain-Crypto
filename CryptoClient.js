@@ -9,8 +9,8 @@ const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 1; // in leading zeros
 const targetBlockTime = 5 * 60; // 5 minutes
 
-let utxoSets = {}; // cached UTXOsets for efficiency
-let transactionSets = {}; // cached txSet for efficiency
+let utxoSets = {}; // cached UTXOsets for each block
+let transactionSets = {}; // cached txSet for each block
 
 // TODO find better elliptic curve library
 function generateKeyPair() {
@@ -108,7 +108,7 @@ function mineGenesisBlock(miner) {
 	const block = {
 		height: 0,
 		transactions: [],
-		timestamp: new Date(),
+		timestamp: Date.now(),
 		nonce: -1,
 	};
 	return mineBlock(block, miner);
@@ -134,7 +134,7 @@ function mineNewBlock(headBlock, transactions, miner) {
 		const feeOutput = {
 			address: miner,
 			amount: totalFee,
-			timestamp: new Date(),
+			timestamp: Date.now(),
 		};
 		feeOutput.hash = calculateUTXOHash(feeOutput);
 		const feeTransaction = {
@@ -149,7 +149,7 @@ function mineNewBlock(headBlock, transactions, miner) {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
 		transactions,
-		timestamp: new Date(),
+		timestamp: Date.now(),
 		nonce: -1,
 	};
 
@@ -160,7 +160,7 @@ function mineBlock(block, miner) {
 	const coinbaseOutput = {
 		address: miner,
 		amount: calculateBlockReward(block.height),
-		timestamp: new Date(),
+		timestamp: Date.now(),
 	};
 	coinbaseOutput.hash = calculateUTXOHash(coinbaseOutput);
 
@@ -214,7 +214,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 	const payment = {
 		address: recipient,
 		amount,
-		timestamp: new Date(),
+		timestamp: Date.now(),
 	};
 	payment.hash = calculateUTXOHash(payment);
 
@@ -225,7 +225,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 		const change = {
 			address: sender,
 			amount: changeAmount,
-			timestamp: new Date(),
+			timestamp: Date.now(),
 		};
 		change.hash = calculateUTXOHash(change);
 		outputs.push(change);
@@ -290,6 +290,8 @@ function isProposedBlockValid(blockchain, prevBlock, transactions) {
 		}
 	}
 }
+
+function isCoinbaseTransaction(transaction) {}
 
 function isBlockchainValid(blockchain, headBlock) {
 	let currBlockHash = headBlock.hash;
