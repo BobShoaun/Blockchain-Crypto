@@ -6,11 +6,13 @@ const ec = new EC("secp256k1");
 const blockRewardHalflife = 10; // in block height
 const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
-const initialBlockDifficulty = 1; // in leading zeros
+const initialBlockDifficulty = 3; // in leading zeros
 const targetBlockTime = 5 * 60; // 5 minutes
 
 let utxoSets = {}; // cached UTXOsets for each block
 let transactionSets = {}; // cached txSet for each block
+
+// TODO flag for coinbase and fee txs
 
 // TODO find better elliptic curve library
 function generateKeyPair() {
@@ -143,6 +145,7 @@ function mineNewBlock(headBlock, transactions, miner) {
 		};
 		feeTransaction.hash = calculateTransactionHash(feeTransaction);
 		transactions = [feeTransaction, ...transactions];
+		// fee transaction is always at index 1
 	}
 
 	const block = {
@@ -170,6 +173,7 @@ function mineBlock(block, miner) {
 	};
 	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
 
+	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 	const difficulty = calculateBlockDifficulty(block.height);
 	do {
