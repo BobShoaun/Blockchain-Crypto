@@ -7,8 +7,12 @@ const ec = new EC("secp256k1");
 const blockRewardHalflife = 10; // in block height
 const initialBlockReward = 50; // in coins
 const difficultyRecalcHeight = 20; // in block height
-const initialBlockDifficulty = 3; // in leading zeros
-const targetBlockTime = 5 * 60; // 5 minutes
+const initialBlockDifficulty = 1;
+const targetBlockTime = 5 * 60; // 5 minutes in seconds
+const initialHashTarget = BigInt(
+	"0x0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+);
+const coin = 1000000; // amounts are stored as the smallest unit, this is how many of the smallest unit that amounts to 1 coin.
 
 let utxoSets = {}; // cached UTXOsets for each block
 let transactionSets = {}; // cached txSet for each block
@@ -125,6 +129,7 @@ function calculateUTXOSet(blockchain, headBlock) {
 function mineGenesisBlock(miner) {
 	const block = {
 		height: 0,
+		difficulty: initialBlockDifficulty,
 		transactions: [],
 		timestamp: Date.now(),
 		nonce: -1,
@@ -167,6 +172,7 @@ function mineNewBlock(headBlock, transactions, miner) {
 	const block = {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
+		difficulty: calculateBlockDifficulty(headBlock),
 		transactions,
 		timestamp: Date.now(),
 		nonce: -1,
@@ -191,18 +197,23 @@ function mineBlock(block, miner) {
 
 	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
-	const difficulty = calculateBlockDifficulty(block.height);
-	do {
-		// TODO: better mining algorithm
-		block.nonce++;
+
+	const hashTarget = initialHashTarget / block.difficulty; // check if division works
+
+	while (true) {
 		block.hash = calculateBlockHash(block);
-	} while (block.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0"));
-	return block;
+		const currentHash = BigInt("0x" + block.hash);
+		if (currentHash <= hashTarget)
+			// mining successful
+			return block;
+		block.nonce++;
+	}
 }
 
 function calculateBlockHash(block) {
 	return SHA256(
 		block.height +
+			block.difficulty +
 			JSON.stringify(block.transactions) +
 			block.timestamp +
 			block.previousHash +
@@ -274,10 +285,18 @@ function calculateBlockReward(height) {
 	return initialBlockReward / (2 * n);
 }
 
-function calculateBlockDifficulty(height) {
-	if (height % difficultyRecalcHeight === 0) {
-	}
-	return initialBlockDifficulty;
+function calculateBlockDifficulty(headBlock) {
+	if (headBlock.height % difficultyRecalcHeight === 0) return headBlock.difficulty;
+	const prevRecalcBlock = null; // prev block diffRecalcHeight away
+	const timeDiff = headBlock.timestamp - prevRecalcBlock.timestamp;
+	const targetTimeDiff = difficultyRecalcHeight * targetBlockTime;
+	let correctionFactor = targetTimeDiff / timeDiff;
+	correctionFactor = Math.min(correctionFactor, 4); // clamp correctionfactor
+	correctionFactor = Math.max(correctionFactor, 1 / 4);
+	const difficulty = headBlock.difficulty * correctionFactor;
+
+	// currtarget = maxtarget / difficulty
+	return difficulty;
 }
 
 function calculateBalance(blockchain, headBlock, address) {

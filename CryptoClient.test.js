@@ -21,11 +21,9 @@ const { sk: tomsk, pk: tompk } = generateKeyPair();
 const { sk: ginsk, pk: ginpk } = generateKeyPair();
 
 test("should generate correct public key", () => {
-	const { sk, pk } = getKeyPair("b0b0");
-	expect(sk).toBe("b0b0");
-	expect(pk).toBe(
-		"04c319cd3653629675324efcd1eff65cd3e43f3453997da3f7ade8b457e5b57c1c3058dcb1f6a10853bb2febad94dbb0e156e909a60c30d118fe43359252ee160c"
-	);
+	const { sk, pk } = getKeyPair("bob");
+	expect(sk).toBe("bob");
+	expect(pk).toBe("21mm3w2KGGbya45eJ9DzezFBJYgaZoyQ8mw5pe3dDpwzZ");
 });
 
 test("invalid tx", () => {
