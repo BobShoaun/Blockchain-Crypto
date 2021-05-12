@@ -1,5 +1,6 @@
 // new alternative crypto client api, made in a more functional way for better integration with a peer to peer or client server model
 const SHA256 = require("crypto-js/sha256");
+const bs58 = require("bs58");
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
 
@@ -14,15 +15,26 @@ let transactionSets = {}; // cached txSet for each block
 
 // TODO flag for coinbase and fee txs
 
-// TODO find better elliptic curve library
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
-	return { sk: keyPair.getPrivate("hex"), pk: keyPair.getPublic("hex") };
+	return encodeKeyPairToBase58(keyPair);
 }
 
+// input secretKey in base58
 function getKeyPair(secretKey) {
-	const keyPair = ec.keyFromPrivate(secretKey, "hex");
-	return { sk: keyPair.getPrivate("hex"), pk: keyPair.getPublic("hex") };
+	const skHex = Buffer.from(bs58.decode(secretKey)).toString("hex");
+	const keyPair = ec.keyFromPrivate(skHex, "hex");
+	return encodeKeyPairToBase58(keyPair);
+}
+
+function encodeKeyPairToBase58(keyPair) {
+	const sk = bs58.encode(Buffer.from(keyPair.getPrivate("hex"), "hex"));
+	const pk = bs58.encode(Buffer.from(keyPair.getPublic().encodeCompressed("hex"), "hex"));
+	return { sk, pk };
+}
+
+function decodeBase58toHex(base58) {
+	return Buffer.from(bs58.decode(base58)).toString("hex");
 }
 
 function resetCache() {
@@ -240,8 +252,8 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 		outputs,
 	};
 	transaction.hash = calculateTransactionHash(transaction);
-	const keyPair = ec.keyFromPrivate(senderSK, "hex");
-	transaction.signature = keyPair.sign(transaction.hash, "base64").toDER("hex");
+	const keyPair = ec.keyFromPrivate(decodeBase58toHex(senderSK), "hex");
+	transaction.signature = keyPair.sign(transaction.hash, "hex").toDER("hex");
 	return transaction;
 }
 
@@ -391,7 +403,7 @@ function isTransactionValid(transaction) {
 	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
 
 	try {
-		const key = ec.keyFromPublic(sender, "hex");
+		const key = ec.keyFromPublic(decodeBase58toHex(sender), "hex");
 		return key.verify(transaction.hash, transaction.signature); // signature is valid
 	} catch {
 		return false;

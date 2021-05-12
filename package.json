@@ -4,6 +4,7 @@
 	"description": "blockchain service",
 	"main": "main.js",
 	"dependencies": {
+		"bs58": "^4.0.1",
 		"crypto-js": "^4.0.0",
 		"elliptic": "^6.5.4"
 	},
