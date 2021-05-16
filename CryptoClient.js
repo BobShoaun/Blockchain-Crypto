@@ -33,6 +33,7 @@ function keyPairToBase58(keyPair) {
 	return { sk, pk };
 }
 
+// TODO: add checksum
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
 	return keyPairToBase58(keyPair);
@@ -198,7 +199,7 @@ function mineBlock(block, miner) {
 	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
-	const hashTarget = initialHashTarget / block.difficulty; // check if division works
+	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty)); // check if division works
 
 	while (true) {
 		block.hash = calculateBlockHash(block);
@@ -285,6 +286,7 @@ function calculateBlockReward(height) {
 	return initialBlockReward / (2 * n);
 }
 
+// get difficulty of next block, given the previous block (headBlock)
 function calculateBlockDifficulty(headBlock) {
 	if (headBlock.height % difficultyRecalcHeight === 0) return headBlock.difficulty;
 	const prevRecalcBlock = null; // prev block diffRecalcHeight away
