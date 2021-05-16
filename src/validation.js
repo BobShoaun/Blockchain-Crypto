@@ -4,7 +4,7 @@ const {
 	calculateTransactionHash,
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
-const { initialHashTarget } = require("./parameters.js");
+const { initialHashTarget } = require("./parameter.js");
 
 const { base58ToHex } = require("./key.js");
 
@@ -97,13 +97,18 @@ function isBlockValid(block) {
 }
 
 function isTransactionValid(transaction) {
-	if (
-		!transaction.inputs ||
-		!transaction.inputs.length ||
-		!transaction.outputs ||
-		!transaction.outputs.length
-	)
-		return false;
+	if (!transaction.inputs || !transaction.outputs) return false;
+
+	if (transaction.type === "coinbase") {
+		if (transaction.inputs.length > 0) return false;
+		if (transaction.outputs.length !== 1) return false; // wrong length of output
+		// if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+	} else if (transaction.type === "fee") {
+		if (transaction.inputs.length > 0) return false;
+		if (transaction.outputs.length !== 1) return false; // wrong length of output
+	}
+
+	if (!transaction.inputs.length || !transaction.outputs.length) return false;
 
 	const sender = transaction.inputs[0].address;
 	let totalInputAmount = 0;

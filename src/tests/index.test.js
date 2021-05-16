@@ -16,6 +16,8 @@ const {
 	resetCache,
 } = require("../../index");
 
+const { evaluate } = require("../helper");
+
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
 const { sk: tomsk, pk: tompk } = generateKeyPair();
 const { sk: ginsk, pk: ginpk } = generateKeyPair();
@@ -48,7 +50,7 @@ test("mempool working", () => {
 	const mp1 = calculateMempool(blockchain, genesis, transactions);
 	expect(mp1).toEqual([tx1]);
 
-	const block1 = mineNewBlock(blockchain, genesis, mp1, bobpk);
+	const block1 = evaluate(mineNewBlock(blockchain, genesis, mp1, bobpk));
 	addBlockToBlockchain(blockchain, block1);
 
 	expect(calculateMempool(blockchain, block1, transactions)).toEqual([]);
@@ -65,11 +67,8 @@ test("mempool working", () => {
 	expect(isTransactionValid(tx3)).toBe(true); // has not been added to blockchain so valid by itself
 	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx2, tx3]);
 
-	const block2 = mineNewBlock(
-		blockchain,
-		block1,
-		calculateMempool(blockchain, block1, transactions),
-		tompk
+	const block2 = evaluate(
+		mineNewBlock(blockchain, block1, calculateMempool(blockchain, block1, transactions), tompk)
 	);
 	addBlockToBlockchain(blockchain, block2);
 
@@ -84,11 +83,8 @@ test("double spending", () => {
 	const transactions = [];
 
 	transactions.push(createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20, 0));
-	const block1 = mineNewBlock(
-		blockchain,
-		genesis,
-		calculateMempool(blockchain, genesis, transactions),
-		bobpk
+	const block1 = evaluate(
+		mineNewBlock(blockchain, genesis, calculateMempool(blockchain, genesis, transactions), bobpk)
 	);
 	addBlockToBlockchain(blockchain, block1);
 
@@ -99,11 +95,8 @@ test("double spending", () => {
 	transactions.push(tx1, tx2);
 
 	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx1, tx2]);
-	const block2 = mineNewBlock(
-		blockchain,
-		block1,
-		calculateMempool(blockchain, block1, transactions),
-		tompk
+	const block2 = evaluate(
+		mineNewBlock(blockchain, block1, calculateMempool(blockchain, block1, transactions), tompk)
 	);
 	addBlockToBlockchain(blockchain, block2);
 
@@ -126,11 +119,11 @@ test("blockchain, tx, and blocks valid", () => {
 	const genesis = mineGenesisBlock(bobpk);
 	const blockchain = createBlockchain([genesis]);
 	const tx1 = createAndSignTransaction(blockchain, genesis, bobsk, bobpk, tompk, 20, 0);
-	const block1 = mineNewBlock(blockchain, genesis, [tx1], tompk);
+	const block1 = evaluate(mineNewBlock(blockchain, genesis, [tx1], tompk));
 	addBlockToBlockchain(blockchain, block1);
 	const tx2 = createAndSignTransaction(blockchain, block1, bobsk, bobpk, tompk, 30, 0);
 	const tx3 = createAndSignTransaction(blockchain, block1, tomsk, tompk, ginpk, 70, 0);
-	const block2 = mineNewBlock(blockchain, block1, [tx2, tx3], ginpk);
+	const block2 = evaluate(mineNewBlock(blockchain, block1, [tx2, tx3], ginpk));
 	addBlockToBlockchain(blockchain, block2);
 	expect(isTransactionValid(tx1) && isTransactionValid(tx2) && isTransactionValid(tx3)).toBe(true);
 	expect(isBlockValid(genesis)).toBe(true);

@@ -8,8 +8,6 @@ const ec = new EC("secp256k1");
 let utxoSets = {}; // cached UTXOsets for each block
 let transactionSets = {}; // cached txSet for each block
 
-// TODO flag for coinbase and fee txs
-
 function resetCache() {
 	utxoSets = {};
 	transactionSets = {};
@@ -126,7 +124,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 
 function calculateTransactionHash(transaction) {
 	return SHA256(
-		JSON.stringify(transaction.inputs) + JSON.stringify(transaction.outputs)
+		JSON.stringify(transaction.inputs) + JSON.stringify(transaction.outputs) + transaction.type
 	).toString();
 }
 

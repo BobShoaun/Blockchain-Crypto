@@ -1,5 +1,7 @@
 const SHA256 = require("crypto-js/sha256");
 const bigintConversion = require("bigint-conversion");
+
+const { evaluate } = require("../helper");
 // const hash = SHA256("hello").toString();
 
 // console.log("0x" + hash);
@@ -34,35 +36,52 @@ function bnToHex(bn) {
 	return hex;
 }
 
+function bigintToHex(num) {
+	let hex = bigintConversion.bigintToHex(num);
+	if (hex.length < 64) {
+		hex = Array(64 - hex.length + 1).join("0") + hex;
+	}
+	return hex;
+}
+
 const initialHashTarget = "0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 const targetValue = BigInt("0x" + initialHashTarget);
 
-function* mine(text) {
+function hello(targetCallback) {
+	return mine("niceee", targetCallback);
+}
+
+function* mine(text, targetCallback) {
 	let nonce = 0;
+
+	targetCallback?.(bigintToHex(targetValue));
 	while (true) {
 		let hash = SHA256(text + nonce).toString();
 		const hashValue = BigInt("0x" + hash);
 		if (hashValue <= targetValue) {
 			console.log("mining successful!");
-			console.log("found: ", hash);
-			console.log("target: ", initialHashTarget);
-			console.log("nonce: ", nonce);
-			break;
+			// console.log("found: ", hash);
+			// console.log("target: ", initialHashTarget);
+			// console.log("nonce: ", nonce);
+			return yield { hash, nonce };
+			// return;
 		}
-		yield nonce++;
+		nonce++;
+		yield { nonce };
 	}
 }
 
-for (const n of mine("helo")) {
-	console.log(n);
+let block = {};
+for (block of hello(target => console.log("taget is: ", target))) {
+	if (block.nonce % 10000 === 0) console.log(block.nonce);
 }
+console.log(block);
+
+const b = evaluate(hello(target => console.log("taget is: ", target)));
+console.log(b);
 
 return;
 
-let hex = bigintConversion.bigintToHex(num);
-if (hex.length < 64) {
-	hex = Array(64 - hex.length + 1).join("0") + hex;
-}
 console.log(hex);
 console.log(initialHashTarget);
 // return;

@@ -6,9 +6,10 @@ const {
 	difficultyRecalcHeight,
 	targetBlockTime,
 	initialHashTarget,
-} = require("./parameters.js");
+} = require("./parameter.js");
 const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
+const { bigintToHex64, evaluate } = require("./helper");
 
 function mineGenesisBlock(miner) {
 	const block = {
@@ -18,10 +19,10 @@ function mineGenesisBlock(miner) {
 		timestamp: Date.now(),
 		nonce: -1,
 	};
-	return mineBlock(block, miner);
+	return evaluate(mineBlock(block, miner));
 }
 
-function mineNewBlock(blockchain, headBlock, transactions, miner) {
+function mineNewBlock(blockchain, headBlock, transactions, miner, targetCallback) {
 	// const utxoSet = calculateUTXOSet(blockchain, headBlock);
 
 	let totalFee = 0;
@@ -45,6 +46,7 @@ function mineNewBlock(blockchain, headBlock, transactions, miner) {
 		};
 		feeOutput.hash = calculateUTXOHash(feeOutput);
 		const feeTransaction = {
+			type: "fee",
 			inputs: [],
 			outputs: [feeOutput],
 		};
@@ -62,10 +64,10 @@ function mineNewBlock(blockchain, headBlock, transactions, miner) {
 	};
 	block.difficulty = calculateBlockDifficulty(blockchain, block);
 
-	return mineBlock(block, miner);
+	return mineBlock(block, miner, targetCallback);
 }
 
-function mineBlock(block, miner) {
+function* mineBlock(block, miner, targetCallback) {
 	const coinbaseOutput = {
 		address: miner,
 		amount: calculateBlockReward(block.height),
@@ -74,6 +76,7 @@ function mineBlock(block, miner) {
 	coinbaseOutput.hash = calculateUTXOHash(coinbaseOutput);
 
 	const coinbaseTransaction = {
+		type: "coinbase",
 		inputs: [],
 		outputs: [coinbaseOutput],
 	};
@@ -83,14 +86,17 @@ function mineBlock(block, miner) {
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
 	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty)); // TODO: maybe store difficulty as int ?
+	targetCallback?.(bigintToHex64(hashTarget));
 
 	while (true) {
 		block.hash = calculateBlockHash(block);
 		const currentHash = BigInt("0x" + block.hash);
 		if (currentHash <= hashTarget)
 			// mining successful
-			return block;
+			return yield block;
+
 		block.nonce++;
+		yield block;
 	}
 }
 
