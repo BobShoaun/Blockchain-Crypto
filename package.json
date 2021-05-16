@@ -2,7 +2,7 @@
 	"name": "blockchain-crypto",
 	"version": "2.2.0",
 	"description": "blockchain service",
-	"main": "main.js",
+	"main": "index.js",
 	"dependencies": {
 		"bigint-conversion": "^2.1.12",
 		"bs58": "^4.0.1",
@@ -16,7 +16,7 @@
 		"testEnvironment": "node"
 	},
 	"scripts": {
-		"test": "jest CryptoClient.test.js --verbose false -- --silent=false"
+		"test": "jest index.test.js --verbose false -- --silent=false"
 	},
 	"author": "",
 	"license": "ISC"

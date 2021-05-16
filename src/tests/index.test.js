@@ -14,7 +14,7 @@ const {
 	getKeyPair,
 	calculateMempool,
 	resetCache,
-} = require("./CryptoClient");
+} = require("../../index");
 
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
 const { sk: tomsk, pk: tompk } = generateKeyPair();

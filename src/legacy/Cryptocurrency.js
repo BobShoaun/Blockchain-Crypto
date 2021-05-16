@@ -73,15 +73,16 @@ class Cryptocurrency extends Blockchain {
 	// }
 
 	blockTransactionsIsValid(transactions, miner) {
-    const minerFound = false;
+		const minerFound = false;
 		for (const transaction of transactions) {
-      if (transaction.sender == null) { // coinbase transaction
-        if (minerFound) return false; // found more than one coinbase transaction.
-        if (transaction.recipient !== miner) return false; // coinbase to wrong miner.
-        if (transaction.amount !== this.blockReward) return false; // wrong block reward.
-        minerFound = true;
-        continue;
-      }
+			if (transaction.sender == null) {
+				// coinbase transaction
+				if (minerFound) return false; // found more than one coinbase transaction.
+				if (transaction.recipient !== miner) return false; // coinbase to wrong miner.
+				if (transaction.amount !== this.blockReward) return false; // wrong block reward.
+				minerFound = true;
+				continue;
+			}
 			if (!transaction.isValid) return false; // each tx valid
 		}
 	}
@@ -95,7 +96,11 @@ class Cryptocurrency extends Blockchain {
 		}
 
 		const coinbaseTransaction = new Transaction(null, miner, this.blockReward); // miner's reward
-		const block = new Block(previousBlock.height + 1, [coinbaseTransaction, ...transactions], this.blockTransactionsIsValid);
+		const block = new Block(
+			previousBlock.height + 1,
+			[coinbaseTransaction, ...transactions],
+			this.blockTransactionsIsValid
+		);
 
 		this.addBlock(block, miner, previousBlock);
 		return block;
@@ -124,8 +129,7 @@ class Cryptocurrency extends Blockchain {
 	getBalance(address) {
 		let balance = 0;
 		for (const block of this.chain) {
-      if (!block.data)
-        continue;
+			if (!block.data) continue;
 			for (const transaction of block.data) {
 				if (transaction.sender === address) balance -= transaction.amount;
 				if (transaction.recipient === address) balance += transaction.amount;
