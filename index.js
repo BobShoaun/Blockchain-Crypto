@@ -7,5 +7,5 @@ module.exports = {
 	...require("./src/mine"),
 	...require("./src/transaction"),
 	...require("./src/validation"),
-	...require("./helper"),
+	...require("./src/helper"),
 };
