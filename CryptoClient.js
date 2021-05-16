@@ -10,7 +10,7 @@ const difficultyRecalcHeight = 20; // in block height
 const initialBlockDifficulty = 1;
 const targetBlockTime = 5 * 60; // 5 minutes in seconds
 const initialHashTarget = BigInt(
-	"0x0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	"0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 );
 const coin = 1000000; // amounts are stored as the smallest unit, this is how many of the smallest unit that amounts to 1 coin.
 
@@ -70,31 +70,26 @@ function calculateMempool(blockchain, headBlock, transactions) {
 	return transactions.filter(tx => !transactionSet.some(txSet => txSet.hash === tx.hash));
 }
 
-function getPreviousBlock(blockchain, block) {
-	for (let i = blockchain.length - 1; i >= 0; i--)
-		if (blockchain[i].hash === block.previousHash) return blockchain[i];
-	return null;
-}
-
 function calculateTransactionSet(blockchain, headBlock) {
-	if (!headBlock) return [];
-
 	if (headBlock.hash in transactionSets) return transactionSets[headBlock.hash];
 
-	const transactionSet = [
-		...calculateTransactionSet(blockchain, getPreviousBlock(blockchain, headBlock)),
-		...headBlock.transactions,
-	];
+	const prevTxSet = headBlock.previousHash
+		? calculateTransactionSet(blockchain, getPreviousBlock(blockchain, headBlock))
+		: [];
+
+	const transactionSet = [...prevTxSet, ...headBlock.transactions];
 
 	transactionSets[headBlock.hash] = transactionSet;
 	return transactionSet;
 }
 
 function calculateUTXOSet(blockchain, headBlock) {
-	if (!headBlock) return [];
 	if (headBlock.hash in utxoSets) return utxoSets[headBlock.hash];
 
-	const utxoSet = [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))];
+	const prevUTXOSet = headBlock.previousHash
+		? calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))
+		: [];
+	const utxoSet = [...prevUTXOSet];
 
 	for (const transaction of headBlock.transactions) {
 		for (const input of transaction.inputs) {
@@ -138,7 +133,7 @@ function mineGenesisBlock(miner) {
 	return mineBlock(block, miner);
 }
 
-function mineNewBlock(headBlock, transactions, miner) {
+function mineNewBlock(blockchain, headBlock, transactions, miner) {
 	// const utxoSet = calculateUTXOSet(blockchain, headBlock);
 
 	let totalFee = 0;
@@ -173,11 +168,11 @@ function mineNewBlock(headBlock, transactions, miner) {
 	const block = {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
-		difficulty: calculateBlockDifficulty(headBlock),
 		transactions,
 		timestamp: Date.now(),
 		nonce: -1,
 	};
+	block.difficulty = calculateBlockDifficulty(blockchain, block);
 
 	return mineBlock(block, miner);
 }
@@ -199,7 +194,7 @@ function mineBlock(block, miner) {
 	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
-	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty)); // check if division works
+	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty)); // TODO: maybe store difficulty as int ?
 
 	while (true) {
 		block.hash = calculateBlockHash(block);
@@ -286,25 +281,42 @@ function calculateBlockReward(height) {
 	return initialBlockReward / (2 * n);
 }
 
-// get difficulty of next block, given the previous block (headBlock)
-function calculateBlockDifficulty(headBlock) {
-	if (headBlock.height % difficultyRecalcHeight === 0) return headBlock.difficulty;
-	const prevRecalcBlock = null; // prev block diffRecalcHeight away
-	const timeDiff = headBlock.timestamp - prevRecalcBlock.timestamp;
-	const targetTimeDiff = difficultyRecalcHeight * targetBlockTime;
+// get difficulty of current block.
+function calculateBlockDifficulty(blockchain, block) {
+	const prevBlock = getPreviousBlock(blockchain, block);
+	if (block.height % difficultyRecalcHeight !== 0) return prevBlock.difficulty;
+	const prevRecalcBlock = getPreviousRecalcBlock(blockchain, block); // prev block diffRecalcHeight away
+	const timeDiff = block.timestamp - prevRecalcBlock.timestamp;
+	const targetTimeDiff = difficultyRecalcHeight * targetBlockTime; // in seconds
 	let correctionFactor = targetTimeDiff / timeDiff;
 	correctionFactor = Math.min(correctionFactor, 4); // clamp correctionfactor
 	correctionFactor = Math.max(correctionFactor, 1 / 4);
-	const difficulty = headBlock.difficulty * correctionFactor;
-
-	// currtarget = maxtarget / difficulty
-	return difficulty;
+	return prevBlock.difficulty * correctionFactor; // new difficulty
 }
 
 function calculateBalance(blockchain, headBlock, address) {
 	let utxoSet = calculateUTXOSet(blockchain, headBlock);
 	utxoSet = utxoSet.filter(utxo => utxo.address === address);
 	return utxoSet.reduce((prev, curr) => prev + curr.amount, 0);
+}
+
+// precondition: block must be high enough to have previous recalc block.
+function getPreviousRecalcBlock(blockchain, block) {
+	let prevHash = block.previousHash;
+	let prevCount = 0;
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].hash !== prevHash) continue;
+		prevHash = blockchain[i].previousHash;
+		prevCount++;
+		if (prevCount >= difficultyRecalcHeight) return blockchain[i];
+	}
+	throw Error("no prev recalc block found");
+}
+
+function getPreviousBlock(blockchain, block) {
+	for (let i = blockchain.length - 1; i >= 0; i--)
+		if (blockchain[i].hash === block.previousHash) return blockchain[i];
+	throw Error("no prev block found in blockchain");
 }
 
 function getHighestValidBlock(blockchain) {
@@ -354,12 +366,18 @@ function isBlockchainValid(blockchain, headBlock) {
 	return false;
 }
 
+// is the block valid in the context of the entire blockchain?
+function isBlockValidInBlockchain(blockchain, block) {
+	// if (block.difficulty !== calculateBlockDifficulty(blockchain, ))
+}
+
 function isBlockValid(block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
-	const difficulty = calculateBlockDifficulty(block.height);
-	if (block.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) return false; // block hash fits difficulty
+	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty));
+	const blockHash = BigInt("0x" + block.hash);
+	if (blockHash > hashTarget) return false; // block hash fits difficulty
 
 	const totalInputAmount = block.transactions.reduce(
 		(total, tx) => total + tx.inputs.reduce((total, input) => total + input.amount, 0),
