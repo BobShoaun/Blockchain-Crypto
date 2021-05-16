@@ -4,7 +4,7 @@ const {
 	calculateTransactionHash,
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
-const { initialHashTarget } = require("./parameter.js");
+const params = require("./parameter.js");
 
 const { base58ToHex } = require("./key.js");
 
@@ -55,7 +55,8 @@ function isBlockValid(block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
-	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty));
+	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
+	hashTarget *= 1000n;
 	const blockHash = BigInt("0x" + block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty
 

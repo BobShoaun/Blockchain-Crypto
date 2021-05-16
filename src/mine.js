@@ -1,20 +1,13 @@
 const SHA256 = require("crypto-js/sha256");
-const {
-	blockRewardHalflife,
-	initialBlockDifficulty,
-	initialBlockReward,
-	difficultyRecalcHeight,
-	targetBlockTime,
-	initialHashTarget,
-} = require("./parameter.js");
 const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigintToHex64, evaluate } = require("./helper");
+const params = require("./parameter.js");
 
 function mineGenesisBlock(miner) {
 	const block = {
 		height: 0,
-		difficulty: initialBlockDifficulty,
+		difficulty: params.initBlockDiff,
 		transactions: [],
 		timestamp: Date.now(),
 		nonce: -1,
@@ -85,7 +78,10 @@ function* mineBlock(block, miner, targetCallback) {
 	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
-	const hashTarget = initialHashTarget / BigInt(Math.trunc(block.difficulty)); // TODO: maybe store difficulty as int ?
+	// divide by multiplying divisor by 1000 then dividing results by 1000
+	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
+	hashTarget *= 1000n;
+
 	targetCallback?.(bigintToHex64(hashTarget));
 
 	while (true) {
@@ -112,21 +108,21 @@ function calculateBlockHash(block) {
 }
 
 function calculateBlockReward(height) {
-	const n = Math.trunc(height / blockRewardHalflife);
-	if (n == 0) return initialBlockReward;
-	return initialBlockReward / (2 * n);
+	const n = Math.trunc(height / params.blockRewardHalflife);
+	if (n == 0) return params.initBlockReward;
+	return params.initBlockReward / (2 * n);
 }
 
 // get difficulty of current block.
 function calculateBlockDifficulty(blockchain, block) {
 	const prevBlock = getPreviousBlock(blockchain, block);
-	if (block.height % difficultyRecalcHeight !== 0) return prevBlock.difficulty;
+	if (block.height % params.diffRecalcHeight !== 0) return prevBlock.difficulty;
 	const prevRecalcBlock = getPreviousRecalcBlock(blockchain, block); // prev block diffRecalcHeight away
 	const timeDiff = block.timestamp - prevRecalcBlock.timestamp;
-	const targetTimeDiff = difficultyRecalcHeight * targetBlockTime; // in seconds
+	const targetTimeDiff = params.diffRecalcHeight * params.targetBlockTime; // in seconds
 	let correctionFactor = targetTimeDiff / timeDiff;
-	correctionFactor = Math.min(correctionFactor, 4); // clamp correctionfactor
-	correctionFactor = Math.max(correctionFactor, 1 / 4);
+	correctionFactor = Math.min(correctionFactor, params.maxDiffCorrectionFactor); // clamp correctionfactor
+	correctionFactor = Math.max(correctionFactor, params.minDiffCorrectionFactor);
 	return prevBlock.difficulty * correctionFactor; // new difficulty
 }
 
@@ -138,7 +134,7 @@ function getPreviousRecalcBlock(blockchain, block) {
 		if (blockchain[i].hash !== prevHash) continue;
 		prevHash = blockchain[i].previousHash;
 		prevCount++;
-		if (prevCount >= difficultyRecalcHeight) return blockchain[i];
+		if (prevCount >= params.diffRecalcHeight) return blockchain[i];
 	}
 	throw Error("no prev recalc block found");
 }

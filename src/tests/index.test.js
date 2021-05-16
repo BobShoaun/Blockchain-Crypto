@@ -18,6 +18,8 @@ const {
 
 const { evaluate } = require("../helper");
 
+const params = require("../parameter");
+
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
 const { sk: tomsk, pk: tompk } = generateKeyPair();
 const { sk: ginsk, pk: ginpk } = generateKeyPair();
@@ -133,4 +135,42 @@ test("blockchain, tx, and blocks valid", () => {
 	expect(calculateBalance(blockchain, block2, bobpk)).toBe(0);
 	expect(calculateBalance(blockchain, block2, tompk)).toBe(30);
 	expect(calculateBalance(blockchain, block2, ginpk)).toBe(120);
+});
+
+test("block difficulty recalculation", () => {
+	params.setDiffRecalcHeight(5);
+	const genesis = mineGenesisBlock(bobpk);
+	const blockchain = createBlockchain([genesis]);
+	for (let i = 0; i < 4; i++) {
+		const block1 = evaluate(mineNewBlock(blockchain, getHighestValidBlock(blockchain), [], tompk));
+		addBlockToBlockchain(blockchain, block1);
+		expect(block1.difficulty).toBe(1);
+	}
+
+	let block = {};
+	for (block of mineNewBlock(blockchain, getHighestValidBlock(blockchain), [], tompk));
+	addBlockToBlockchain(blockchain, block);
+	expect(block.difficulty).not.toBe(1);
+
+	const block2 = evaluate(mineNewBlock(blockchain, getHighestValidBlock(blockchain), [], tompk));
+	expect(block2.difficulty).not.toBe(1);
+});
+
+test("params setting", () => {
+	let parameters = {
+		name: "Bobcoin",
+		symbol: "BBX", // or BCX ?
+		coin: 100000000, // amounts are stored as the smallest unit, this is how many of the smallest unit that amounts to 1 coin.
+		initBlockReward: 50, // in coins
+		blockRewardHalflife: 10, // in block height
+		initBlockDiff: 1,
+		initHashTarget: BigInt("0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+		targetBlockTime: 5 * 60, // 5 minutes in seconds
+		diffRecalcHeight: 20, // in block height
+	};
+
+	params.setParams(parameters);
+	expect(params.symbol).toBe("BBX");
+	params.setName("bitcoin");
+	expect(params.name).toBe("bitcoin");
 });
