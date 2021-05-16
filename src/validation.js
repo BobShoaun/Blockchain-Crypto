@@ -71,18 +71,31 @@ function isBlockValid(block) {
 	const fee = totalInputAmount - totalOutputAmount;
 
 	let miner = null;
+	let coinbaseFound = false;
+	let feeFound = false;
 
 	for (const transaction of block.transactions) {
 		if (!isTransactionValid(transaction)) return false;
 		if (transaction.type === "coinbase") {
 			if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+			if (coinbaseFound) return false; // more than one coinbase tx
 			miner = transaction.outputs[0].address; // coinbase always first
+			coinbaseFound = true;
 		} else if (transaction.type === "fee") {
 			if (transaction.outputs[0].amount !== fee) return false; // invalid fee
 			if (transaction.outputs[0].miner !== miner) return false; // fee reward not same as miner
+			if (feeFound) return false; // more than one fee tx
+			feeFound = true;
 		}
 	}
 	return true;
+}
+
+function isTransactionValidInBlockchain(blockchain, headBlock, transaction) {
+	const utxoSet = calculateUTXOSet(blockchain, headBlock);
+	for (const input of transaction.inputs)
+		if (!utxoSet.some(utxo => utxo.hash === input.hash)) return false;
+	return isTransactionValid(transaction);
 }
 
 function isTransactionValid(transaction) {
@@ -108,6 +121,7 @@ function isTransactionValid(transaction) {
 	let totalInputAmount = 0;
 	let totalOutputAmount = 0;
 
+	// TODO check for no duplicate utxo
 	for (const input of transaction.inputs) {
 		if (sender !== input.address) return false;
 		if (input.hash !== calculateUTXOHash(input)) return false;
@@ -138,4 +152,5 @@ module.exports = {
 	isBlockValidInBlockchain,
 	isBlockValid,
 	isTransactionValid,
+	isTransactionValidInBlockchain,
 };

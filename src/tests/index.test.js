@@ -14,6 +14,7 @@ const {
 	getKeyPair,
 	calculateMempool,
 	resetCache,
+	isTransactionValidInBlockchain,
 } = require("../../index");
 
 const { evaluate } = require("../helper");
@@ -67,6 +68,7 @@ test("mempool working", () => {
 	transactions.push(tx3);
 
 	expect(isTransactionValid(tx3)).toBe(true); // has not been added to blockchain so valid by itself
+	expect(isTransactionValidInBlockchain(blockchain, block1, tx3)).toBe(true); // still valid in context of blockchain becuz not mined
 	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx2, tx3]);
 
 	const block2 = evaluate(
@@ -74,8 +76,10 @@ test("mempool working", () => {
 	);
 	addBlockToBlockchain(blockchain, block2);
 
-	expect(isBlockValid(block2)).toBe(true); // why
-	expect(isBlockchainValid(blockchain, block2)).toBe(true); // why
+	expect(isTransactionValidInBlockchain(blockchain, block2, tx3)).toBe(false); // not valid in context of blockchain after mining
+
+	expect(isBlockValid(block2)).toBe(true); // block doesnt know about the entire blockchain, cant get utxo set
+	expect(isBlockchainValid(blockchain, block2)).toBe(true); // need to fix this
 });
 
 test("double spending", () => {
