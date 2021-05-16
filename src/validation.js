@@ -24,8 +24,6 @@ function isProposedBlockValid(blockchain, prevBlock, transactions) {
 	}
 }
 
-function isCoinbaseTransaction(transaction) {}
-
 function isBlockchainValid(blockchain, headBlock) {
 	let currBlockHash = headBlock.hash;
 	let prevBlock = headBlock;
@@ -72,27 +70,17 @@ function isBlockValid(block) {
 
 	const fee = totalInputAmount - totalOutputAmount;
 
-	let coinbaseFound = false;
-	let feeFound = false;
 	let miner = null;
 
 	for (const transaction of block.transactions) {
-		if (transaction.inputs.length === 0) {
-			// coinbase or fee
-			if (transaction.outputs.length !== 1) return false; // wrong length of output
-			if (!coinbaseFound) {
-				if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
-				miner = transaction.outputs[0].address;
-				if (!miner) return false;
-				coinbaseFound = true;
-			} else if (!feeFound) {
-				if (transaction.outputs[0].amount !== fee) return false; // invalid fee
-				if (transaction.outputs[0].miner !== miner) return false; // fee reward not same as miner
-				feeFound = true;
-			} else return false; // more than one fee or coinbase
-			continue;
-		}
 		if (!isTransactionValid(transaction)) return false;
+		if (transaction.type === "coinbase") {
+			if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+			miner = transaction.outputs[0].address; // coinbase always first
+		} else if (transaction.type === "fee") {
+			if (transaction.outputs[0].amount !== fee) return false; // invalid fee
+			if (transaction.outputs[0].miner !== miner) return false; // fee reward not same as miner
+		}
 	}
 	return true;
 }
@@ -100,13 +88,18 @@ function isBlockValid(block) {
 function isTransactionValid(transaction) {
 	if (!transaction.inputs || !transaction.outputs) return false;
 
+	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
+
 	if (transaction.type === "coinbase") {
 		if (transaction.inputs.length > 0) return false;
 		if (transaction.outputs.length !== 1) return false; // wrong length of output
-		// if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+		if (!transaction.outputs[0].address) return false; // no miner
+		return true;
 	} else if (transaction.type === "fee") {
 		if (transaction.inputs.length > 0) return false;
 		if (transaction.outputs.length !== 1) return false; // wrong length of output
+		if (!transaction.outputs[0].address) return false; // no miner
+		return true;
 	}
 
 	if (!transaction.inputs.length || !transaction.outputs.length) return false;
@@ -129,8 +122,6 @@ function isTransactionValid(transaction) {
 	if (totalInputAmount < totalOutputAmount) return false;
 
 	if (!transaction.signature) return false; // signature is present
-
-	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
 
 	try {
 		const key = ec.keyFromPublic(base58ToHex(sender), "hex");
