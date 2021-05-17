@@ -38,4 +38,4 @@ class Parameters {
 	}
 }
 
-module.exports = new Parameters();
+module.exports = { params: new Parameters() };

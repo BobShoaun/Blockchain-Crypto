@@ -4,7 +4,7 @@ const {
 	calculateTransactionHash,
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
-const params = require("./parameter.js");
+const { params } = require("./parameter.js");
 
 const { base58ToHex } = require("./key.js");
 

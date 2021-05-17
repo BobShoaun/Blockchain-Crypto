@@ -2,7 +2,7 @@ const SHA256 = require("crypto-js/sha256");
 const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigintToHex64, evaluate } = require("./helper");
-const params = require("./parameter.js");
+const { params } = require("./parameter.js");
 
 function mineGenesisBlock(miner) {
 	const block = {

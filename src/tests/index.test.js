@@ -19,7 +19,7 @@ const {
 
 const { evaluate } = require("../helper");
 
-const params = require("../parameter");
+const { params } = require("../parameter");
 
 const { sk: bobsk, pk: bobpk } = generateKeyPair();
 const { sk: tomsk, pk: tompk } = generateKeyPair();
