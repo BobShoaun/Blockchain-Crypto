@@ -18,14 +18,24 @@ class Parameters {
 	setName(name) {
 		this.name = name;
 	}
-
-	// setName = name => (this.name = name);
-	// setInitBlockReward = initBlockReward => (this.initBlockReward = initBlockReward);
-	// setInitBlockDiff = initBlockDiff => (this.initBlockDiff = initBlockDiff);
-	// setInitHashTarget = initHashTarget => (this.initHashTarget = initHashTarget);
-	// setTargetBlockTime = targetBlockTime => (this.targetBlockTime = targetBlockTime);
-	// setDiffRecalcHeight = diffRecalcHeight => (this.diffRecalcHeight = diffRecalcHeight);
-	// setParams = params => Object.entries(params).forEach(([key, value]) => (this[key] = value));
+	setInitBlockReward(initBlockReward) {
+		this.initBlockReward = initBlockReward;
+	}
+	setInitBlockDiff(initBlockDiff) {
+		this.initBlockDiff = initBlockDiff;
+	}
+	setInitHashTarget(initHashTarget) {
+		this.initHashTarget = initHashTarget;
+	}
+	setTargetBlockTime(targetBlockTime) {
+		this.targetBlockTime = targetBlockTime;
+	}
+	setDiffRecalcHeight(diffRecalcHeight) {
+		this.diffRecalcHeight = diffRecalcHeight;
+	}
+	setParams(params) {
+		Object.entries(params).forEach(([key, value]) => (this[key] = value));
+	}
 }
 
 module.exports = new Parameters();
