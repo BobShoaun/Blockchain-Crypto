@@ -10,7 +10,7 @@ function mineGenesisBlock(miner) {
 		difficulty: params.initBlockDiff,
 		transactions: [],
 		timestamp: Date.now(),
-		nonce: -1,
+		nonce: 0,
 	};
 	return evaluate(mineBlock(block, miner));
 }
@@ -53,7 +53,7 @@ function mineNewBlock(blockchain, headBlock, transactions, miner, targetCallback
 		previousHash: headBlock.hash,
 		transactions,
 		timestamp: Date.now(),
-		nonce: -1,
+		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(blockchain, block);
 
