@@ -2,9 +2,8 @@ const SHA256 = require("crypto-js/sha256");
 const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigintToHex64, evaluate } = require("./helper");
-const { params } = require("./parameter.js");
 
-function mineGenesisBlock(miner) {
+function mineGenesisBlock(params, miner) {
 	const block = {
 		height: 0,
 		difficulty: params.initBlockDiff,
@@ -12,10 +11,10 @@ function mineGenesisBlock(miner) {
 		timestamp: Date.now(),
 		nonce: 0,
 	};
-	return evaluate(mineBlock(block, miner));
+	return evaluate(mineBlock(params, block, miner));
 }
 
-function mineNewBlock(blockchain, headBlock, transactions, miner, targetCallback) {
+function mineNewBlock(params, blockchain, headBlock, transactions, miner, targetCallback) {
 	// const utxoSet = calculateUTXOSet(blockchain, headBlock);
 
 	let totalFee = 0;
@@ -55,15 +54,15 @@ function mineNewBlock(blockchain, headBlock, transactions, miner, targetCallback
 		timestamp: Date.now(),
 		nonce: 0,
 	};
-	block.difficulty = calculateBlockDifficulty(blockchain, block);
+	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
 
-	return mineBlock(block, miner, targetCallback);
+	return mineBlock(params, block, miner, targetCallback);
 }
 
-function* mineBlock(block, miner, targetCallback) {
+function* mineBlock(params, block, miner, targetCallback) {
 	const coinbaseOutput = {
 		address: miner,
-		amount: calculateBlockReward(block.height),
+		amount: calculateBlockReward(params, block.height),
 		timestamp: Date.now(),
 	};
 	coinbaseOutput.hash = calculateUTXOHash(coinbaseOutput);
@@ -81,6 +80,9 @@ function* mineBlock(block, miner, targetCallback) {
 	// divide by multiplying divisor by 1000 then dividing results by 1000
 	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
+	if (hashTarget > params.initHashTarget)
+		// clamp hash target if too big
+		hashTarget = params.initHashTarget;
 
 	targetCallback?.(bigintToHex64(hashTarget));
 
@@ -107,17 +109,17 @@ function calculateBlockHash(block) {
 	).toString();
 }
 
-function calculateBlockReward(height) {
+function calculateBlockReward(params, height) {
 	const n = Math.trunc(height / params.blockRewardHalflife);
 	if (n == 0) return params.initBlockReward;
 	return params.initBlockReward / (2 * n);
 }
 
 // get difficulty of current block.
-function calculateBlockDifficulty(blockchain, block) {
+function calculateBlockDifficulty(params, blockchain, block) {
 	const prevBlock = getPreviousBlock(blockchain, block);
 	if (block.height % params.diffRecalcHeight !== 0) return prevBlock.difficulty;
-	const prevRecalcBlock = getPreviousRecalcBlock(blockchain, block); // prev block diffRecalcHeight away
+	const prevRecalcBlock = getPreviousRecalcBlock(params, blockchain, block); // prev block diffRecalcHeight away
 	const timeDiff = block.timestamp - prevRecalcBlock.timestamp;
 	const targetTimeDiff = params.diffRecalcHeight * params.targetBlockTime; // in seconds
 	let correctionFactor = targetTimeDiff / timeDiff;
@@ -127,7 +129,7 @@ function calculateBlockDifficulty(blockchain, block) {
 }
 
 // precondition: block must be high enough to have previous recalc block.
-function getPreviousRecalcBlock(blockchain, block) {
+function getPreviousRecalcBlock(params, blockchain, block) {
 	let prevHash = block.previousHash;
 	let prevCount = 0;
 	for (let i = blockchain.length - 1; i >= 0; i--) {

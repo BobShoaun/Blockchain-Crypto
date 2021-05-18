@@ -4,8 +4,6 @@ const {
 	calculateTransactionHash,
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
-const { params } = require("./parameter.js");
-
 const { base58ToHex } = require("./key.js");
 
 const EC = require("elliptic").ec;
@@ -24,14 +22,14 @@ function isProposedBlockValid(blockchain, prevBlock, transactions) {
 	}
 }
 
-function isBlockchainValid(blockchain, headBlock) {
+function isBlockchainValid(params, blockchain, headBlock) {
 	let currBlockHash = headBlock.hash;
 	let prevBlock = headBlock;
 	for (let i = blockchain.length - 1; i >= 0; i--) {
 		const block = blockchain[i];
 		if (block.hash !== currBlockHash) continue;
 
-		if (!isBlockValid(block)) return false; // block itself valid
+		if (!isBlockValid(params, block)) return false; // block itself valid
 
 		if (block.height === 0) return true; // reached genesis
 
@@ -44,17 +42,19 @@ function isBlockchainValid(blockchain, headBlock) {
 }
 
 // is the block valid in the context of the entire blockchain?
-function isBlockValidInBlockchain(blockchain, block) {
-	if (block.difficulty !== calculateBlockDifficulty(blockchain, block)) return false;
-	return isBlockValid(block);
+function isBlockValidInBlockchain(params, blockchain, block) {
+	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block)) return false;
+	return isBlockValid(params, block);
 }
 
-function isBlockValid(block) {
+function isBlockValid(params, block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
 	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
+	if (hashTarget > params.initHashTarget) hashTarget = params.initHashTarget;
+
 	const blockHash = BigInt("0x" + block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty
 
@@ -77,7 +77,8 @@ function isBlockValid(block) {
 	for (const transaction of block.transactions) {
 		if (!isTransactionValid(transaction)) return false;
 		if (transaction.type === "coinbase") {
-			if (transaction.outputs[0].amount !== calculateBlockReward(block.height)) return false; // invalid reward
+			if (transaction.outputs[0].amount !== calculateBlockReward(params, block.height))
+				return false; // invalid reward
 			if (coinbaseFound) return false; // more than one coinbase tx
 			miner = transaction.outputs[0].address; // coinbase always first
 			coinbaseFound = true;
