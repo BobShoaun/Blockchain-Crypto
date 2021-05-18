@@ -77,14 +77,7 @@ function* mineBlock(params, block, miner, targetCallback) {
 	// coinbase tx must be the first transaction
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
-	// divide by multiplying divisor by 1000 then dividing results by 1000
-	const initHashTarget = hexToBigInt(params.initHashTarg);
-	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
-	hashTarget *= 1000n;
-	if (hashTarget > initHashTarget)
-		// clamp hash target if too big
-		hashTarget = initHashTarget;
-
+	const hashTarget = calculateHashTarget(params, block);
 	targetCallback?.(bigIntToHex64(hashTarget));
 
 	while (true) {
@@ -129,6 +122,17 @@ function calculateBlockDifficulty(params, blockchain, block) {
 	return prevBlock.difficulty * correctionFactor; // new difficulty
 }
 
+function calculateHashTarget(params, block) {
+	// divide by multiplying divisor by 1000 then dividing results by 1000
+	const initHashTarget = hexToBigInt(params.initHashTarg);
+	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
+	hashTarget *= 1000n;
+	if (hashTarget > initHashTarget)
+		// clamp hash target if too big
+		hashTarget = initHashTarget;
+	return hashTarget;
+}
+
 // precondition: block must be high enough to have previous recalc block.
 function getPreviousRecalcBlock(params, blockchain, block) {
 	let prevHash = block.previousHash;
@@ -149,4 +153,5 @@ module.exports = {
 	getPreviousRecalcBlock,
 	calculateBlockReward,
 	calculateBlockDifficulty,
+	calculateHashTarget,
 };

@@ -3,7 +3,7 @@ const {
 	calculateUTXOHash,
 	calculateTransactionHash,
 } = require("./transaction.js");
-const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
+const { calculateBlockHash, calculateBlockReward, calculateHashTarget } = require("./mine.js");
 const { base58ToHex } = require("./key.js");
 const { hexToBigInt } = require("./helper");
 
@@ -62,10 +62,7 @@ function isBlockValid(params, block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
-	const initHashTarget = hexToBigInt(params.initHashTarg);
-	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
-	hashTarget *= 1000n;
-	if (hashTarget > initHashTarget) hashTarget = initHashTarget;
+	const hashTarget = calculateHashTarget(params, block);
 
 	const blockHash = hexToBigInt(block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty
