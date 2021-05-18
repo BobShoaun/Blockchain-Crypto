@@ -49,6 +49,7 @@ test("should generate correct public key", () => {
 	expect(pk).toBe("21mm3w2KGGbya45eJ9DzezFBJYgaZoyQ8mw5pe3dDpwzZ");
 	expect(address).toBe("8obdgEpD9kqU8RqAH6j53j9bX2U62VV");
 	expect(isAddressValid(params, address)).toBe(true);
+	expect(isAddressValid(params, "8obdgEpD9kqU8RqAH6j53j9bX2U62Vv")).toBe(false);
 
 	const { sk: skt, pk: pkt, address: addresst } = getKeys(params, "tom");
 	expect(skt).toBe("tom");

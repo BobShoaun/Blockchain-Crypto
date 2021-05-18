@@ -74,7 +74,17 @@ function calculateUTXOHash(utxo) {
 	return SHA256(utxo.address + utxo.amount + utxo.timestamp).toString();
 }
 
-function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recipient, amount, fee) {
+// amount and fee all in smallest denominations
+function createAndSignTransaction(
+	blockchain,
+	headBlock,
+	senderSK,
+	senderPK,
+	senderAdd,
+	recipientAdd,
+	amount,
+	fee
+) {
 	const utxoSet = calculateUTXOSet(blockchain, headBlock);
 
 	// pick utxos from front to back.
@@ -82,7 +92,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 	const inputs = [];
 	for (const utxo of utxoSet) {
 		if (utxoAmount >= amount) break;
-		if (utxo.address !== sender) continue;
+		if (utxo.address !== senderAdd) continue;
 		utxoAmount += utxo.amount;
 		// inputs.push({
 		// 	txHash: utxo.txHash,
@@ -92,7 +102,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 	}
 
 	const payment = {
-		address: recipient,
+		address: recipientAdd,
 		amount,
 		timestamp: Date.now(),
 	};
@@ -103,7 +113,7 @@ function createAndSignTransaction(blockchain, headBlock, senderSK, sender, recip
 	const changeAmount = utxoAmount - amount - fee;
 	if (changeAmount > 0) {
 		const change = {
-			address: sender,
+			address: senderAdd,
 			amount: changeAmount,
 			timestamp: Date.now(),
 		};
