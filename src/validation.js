@@ -5,6 +5,7 @@ const {
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
 const { base58ToHex } = require("./key.js");
+const { hexToBigInt } = require("./helper");
 
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
@@ -51,9 +52,10 @@ function isBlockValid(params, block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
-	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
+	const initHashTarget = hexToBigInt(params.initHashTarget);
+	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
-	if (hashTarget > params.initHashTarget) hashTarget = params.initHashTarget;
+	if (hashTarget > initHashTarget) hashTarget = initHashTarget;
 
 	const blockHash = BigInt("0x" + block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty

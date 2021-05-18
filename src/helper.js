@@ -1,9 +1,13 @@
 const bigintConversion = require("bigint-conversion");
 
-function bigintToHex64(num) {
+function bigIntToHex64(num) {
 	let hex = bigintConversion.bigintToHex(num);
 	if (hex.length < 64) hex = Array(64 - hex.length + 1).join("0") + hex;
 	return hex;
+}
+
+function hexToBigInt(hex) {
+	return BigInt("0x" + hex);
 }
 
 function evaluate(generator) {
@@ -12,4 +16,4 @@ function evaluate(generator) {
 	return value;
 }
 
-module.exports = { bigintToHex64, evaluate };
+module.exports = { bigIntToHex64, hexToBigInt, evaluate };

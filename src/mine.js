@@ -1,7 +1,7 @@
 const SHA256 = require("crypto-js/sha256");
 const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
-const { bigintToHex64, evaluate } = require("./helper");
+const { bigIntToHex64, hexToBigInt, evaluate } = require("./helper");
 
 function mineGenesisBlock(params, miner) {
 	const block = {
@@ -78,13 +78,14 @@ function* mineBlock(params, block, miner, targetCallback) {
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
 	// divide by multiplying divisor by 1000 then dividing results by 1000
-	let hashTarget = params.initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
+	const initHashTarget = hexToBigInt(params.initHashTarget);
+	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
-	if (hashTarget > params.initHashTarget)
+	if (hashTarget > initHashTarget)
 		// clamp hash target if too big
-		hashTarget = params.initHashTarget;
+		hashTarget = initHashTarget;
 
-	targetCallback?.(bigintToHex64(hashTarget));
+	targetCallback?.(bigIntToHex64(hashTarget));
 
 	while (true) {
 		block.hash = calculateBlockHash(block);

@@ -30,7 +30,7 @@ const params = {
 	initBlockReward: 50, // in coins
 	blockRewardHalflife: 10, // in block height
 	initBlockDiff: 1,
-	initHashTarget: BigInt("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+	initHashTarget: "0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 	targetBlockTime: 5 * 60, // 5 minutes in seconds
 	diffRecalcHeight: 20, // in block height
 	minDiffCorrectionFactor: 1 / 4,
@@ -202,7 +202,7 @@ test("params setting", () => {
 		initBlockReward: 50, // in coins
 		blockRewardHalflife: 10, // in block height
 		initBlockDiff: 1,
-		initHashTarget: BigInt("0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+		initHashTarget: "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 		targetBlockTime: 5 * 60, // 5 minutes in seconds
 		diffRecalcHeight: 20, // in block height
 	};
