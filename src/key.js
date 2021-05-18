@@ -1,3 +1,5 @@
+const SHA256 = require("crypto-js/sha256");
+const RIPEMD160 = require("crypto-js/ripemd160");
 const bs58 = require("bs58");
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
@@ -16,7 +18,6 @@ function keyPairToBase58(keyPair) {
 	return { sk, pk };
 }
 
-// TODO: add checksum
 function generateKeyPair() {
 	const keyPair = ec.genKeyPair();
 	return keyPairToBase58(keyPair);
@@ -29,10 +30,51 @@ function getKeyPair(secretKey) {
 	return keyPairToBase58(keyPair);
 }
 
+// new functions for new key and address algorithms
+function generateKeys(params) {
+	const keyPair = ec.genKeyPair();
+	const skHex = keyPair.getPrivate("hex");
+	const pkHex = keyPair.getPublic().encodeCompressed("hex");
+	const address = getAddressFromPKHex(params, pkHex);
+	const sk = hexToBase58(skHex);
+	const pk = hexToBase58(pkHex);
+	return { sk, pk, address };
+}
+
+function getKeys(params, skB58) {
+	const inputSkHex = base58ToHex(skB58);
+	const keyPair = ec.keyFromPrivate(inputSkHex, "hex");
+	const skHex = keyPair.getPrivate("hex");
+	const pkHex = keyPair.getPublic().encodeCompressed("hex");
+	const address = getAddressFromPKHex(params, pkHex);
+	const sk = hexToBase58(skHex);
+	const pk = hexToBase58(pkHex);
+	return { sk, pk, address };
+}
+
+function getAddressFromPKB58(params, pkB58) {
+	const pkHex = base58ToHex(pkB58);
+	return getAddressFromPKHex(params, pkHex);
+}
+
+function getAddressFromPKHex(params, pkHex) {
+	const hash1 = SHA256(pkHex).toString();
+	const hash2 = RIPEMD160(hash1).toString();
+	const version = params.addressPre + hash2;
+	const check = SHA256(version).toString();
+	const checksum = check.slice(0, params.checksumLen);
+	const pkHash = version + checksum;
+	return hexToBase58(pkHash);
+}
+
 module.exports = {
 	base58ToHex,
 	hexToBase58,
 	keyPairToBase58,
 	generateKeyPair,
 	getKeyPair,
+	generateKeys,
+	getKeys,
+	getAddressFromPKHex,
+	getAddressFromPKB58,
 };

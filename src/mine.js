@@ -78,7 +78,7 @@ function* mineBlock(params, block, miner, targetCallback) {
 	block.transactions = [coinbaseTransaction, ...block.transactions];
 
 	// divide by multiplying divisor by 1000 then dividing results by 1000
-	const initHashTarget = hexToBigInt(params.initHashTarget);
+	const initHashTarget = hexToBigInt(params.initHashTarg);
 	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
 	if (hashTarget > initHashTarget)
@@ -111,9 +111,9 @@ function calculateBlockHash(block) {
 }
 
 function calculateBlockReward(params, height) {
-	const n = Math.trunc(height / params.blockRewardHalflife);
-	if (n == 0) return params.initBlockReward;
-	return params.initBlockReward / (2 * n);
+	const n = Math.trunc(height / params.blkRewardHalflife);
+	if (n == 0) return params.initBlkReward;
+	return params.initBlkReward / (2 * n);
 }
 
 // get difficulty of current block.
@@ -122,10 +122,10 @@ function calculateBlockDifficulty(params, blockchain, block) {
 	if (block.height % params.diffRecalcHeight !== 0) return prevBlock.difficulty;
 	const prevRecalcBlock = getPreviousRecalcBlock(params, blockchain, block); // prev block diffRecalcHeight away
 	const timeDiff = block.timestamp - prevRecalcBlock.timestamp;
-	const targetTimeDiff = params.diffRecalcHeight * params.targetBlockTime; // in seconds
+	const targetTimeDiff = params.diffRecalcHeight * params.targBlkTime; // in seconds
 	let correctionFactor = targetTimeDiff / timeDiff;
-	correctionFactor = Math.min(correctionFactor, params.maxDiffCorrectionFactor); // clamp correctionfactor
-	correctionFactor = Math.max(correctionFactor, params.minDiffCorrectionFactor);
+	correctionFactor = Math.min(correctionFactor, params.maxDiffCorrFact); // clamp correctionfactor
+	correctionFactor = Math.max(correctionFactor, params.minDiffCorrFact);
 	return prevBlock.difficulty * correctionFactor; // new difficulty
 }
 

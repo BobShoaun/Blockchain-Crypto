@@ -7,8 +7,18 @@ const { calculateBlockHash, calculateBlockReward } = require("./mine.js");
 const { base58ToHex } = require("./key.js");
 const { hexToBigInt } = require("./helper");
 
+const SHA256 = require("crypto-js/sha256");
+
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
+
+function isAddressValid(params, address) {
+	const pkHash = base58ToHex(address);
+	const checksum = pkHash.slice(pkHash.length - params.checksumLen);
+	const version = pkHash.slice(0, pkHash.length - params.checksumLen);
+	const check = SHA256(version).toString();
+	return check.slice(0, params.checksumLen) === checksum;
+}
 
 // check if transaction set chosen is valid for the block before mining it.
 function isProposedBlockValid(blockchain, prevBlock, transactions) {
@@ -52,7 +62,7 @@ function isBlockValid(params, block) {
 	if (block.height < 0) return false; // height valid
 	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
 
-	const initHashTarget = hexToBigInt(params.initHashTarget);
+	const initHashTarget = hexToBigInt(params.initHashTarg);
 	let hashTarget = initHashTarget / BigInt(Math.trunc(block.difficulty * 1000));
 	hashTarget *= 1000n;
 	if (hashTarget > initHashTarget) hashTarget = initHashTarget;
@@ -150,6 +160,7 @@ function isTransactionValid(transaction) {
 }
 
 module.exports = {
+	isAddressValid,
 	isProposedBlockValid,
 	isBlockchainValid,
 	isBlockValidInBlockchain,
