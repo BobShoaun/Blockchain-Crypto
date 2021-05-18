@@ -148,4 +148,5 @@ module.exports = {
 	calculateBlockHash,
 	getPreviousRecalcBlock,
 	calculateBlockReward,
+	calculateBlockDifficulty,
 };

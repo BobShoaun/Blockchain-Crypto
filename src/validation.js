@@ -57,7 +57,7 @@ function isBlockValid(params, block) {
 	hashTarget *= 1000n;
 	if (hashTarget > initHashTarget) hashTarget = initHashTarget;
 
-	const blockHash = BigInt("0x" + block.hash);
+	const blockHash = hexToBigInt(block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty
 
 	const totalInputAmount = block.transactions.reduce(
@@ -70,7 +70,8 @@ function isBlockValid(params, block) {
 		0
 	);
 
-	const fee = totalInputAmount - totalOutputAmount;
+	const blockReward = calculateBlockReward(params, block.height);
+	const fee = totalInputAmount + blockReward - totalOutputAmount;
 
 	let miner = null;
 	let coinbaseFound = false;
@@ -79,8 +80,7 @@ function isBlockValid(params, block) {
 	for (const transaction of block.transactions) {
 		if (!isTransactionValid(transaction)) return false;
 		if (transaction.type === "coinbase") {
-			if (transaction.outputs[0].amount !== calculateBlockReward(params, block.height))
-				return false; // invalid reward
+			if (transaction.outputs[0].amount !== blockReward) return false; // invalid reward
 			if (coinbaseFound) return false; // more than one coinbase tx
 			miner = transaction.outputs[0].address; // coinbase always first
 			coinbaseFound = true;
