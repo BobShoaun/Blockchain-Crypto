@@ -18,6 +18,6 @@
 	"scripts": {
 		"test": "jest index.test.js --verbose false -- --silent=false"
 	},
-	"author": "",
+	"author": "Ng Bob Shoaun",
 	"license": "ISC"
 }
