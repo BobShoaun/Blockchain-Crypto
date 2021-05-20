@@ -2,6 +2,7 @@ const {
 	calculateUTXOSet,
 	calculateUTXOHash,
 	calculateTransactionHash,
+	calculateTransactionPreImage,
 } = require("./transaction.js");
 const { calculateBlockHash, calculateBlockReward, calculateHashTarget } = require("./mine.js");
 const { base58ToHex } = require("./key.js");
@@ -67,44 +68,39 @@ function isBlockValid(params, block) {
 	const blockHash = hexToBigInt(block.hash);
 	if (blockHash > hashTarget) return false; // block hash fits difficulty
 
-	const totalInputAmount = block.transactions.reduce(
-		(total, tx) => total + tx.inputs.reduce((total, input) => total + input.amount, 0),
-		0
-	);
+	// const totalInputAmount = block.transactions.reduce(
+	// 	(total, tx) => total + tx.inputs.reduce((total, input) => total + input.amount, 0),
+	// 	0
+	// );
 
-	const totalOutputAmount = block.transactions.reduce(
-		(total, tx) => total + tx.outputs.reduce((total, output) => total + output.amount, 0),
-		0
-	);
+	// const totalOutputAmount = block.transactions.reduce(
+	// 	(total, tx) => total + tx.outputs.reduce((total, output) => total + output.amount, 0),
+	// 	0
+	// );
 
+	// const fee = totalInputAmount + blockReward - totalOutputAmount;
 	const blockReward = calculateBlockReward(params, block.height);
-	const fee = totalInputAmount + blockReward - totalOutputAmount;
 
-	let miner = null;
+	// let miner = null;
 	let coinbaseFound = false;
-	let feeFound = false;
 
 	for (const transaction of block.transactions) {
 		if (!isTransactionValid(transaction)) return false;
-		if (transaction.type === "coinbase") {
-			if (transaction.outputs[0].amount !== blockReward) return false; // invalid reward
+		if (!transaction.inputs.length) {
+			// coinbase
 			if (coinbaseFound) return false; // more than one coinbase tx
-			miner = transaction.outputs[0].address; // coinbase always first
+			// if (transaction.outputs[0].amount !== blockReward) return false; // invalid reward
+			// miner = transaction.outputs[0].address; // coinbase always first
 			coinbaseFound = true;
-		} else if (transaction.type === "fee") {
-			if (transaction.outputs[0].amount !== fee) return false; // invalid fee
-			if (transaction.outputs[0].miner !== miner) return false; // fee reward not same as miner
-			if (feeFound) return false; // more than one fee tx
-			feeFound = true;
 		}
 	}
 	return true;
 }
 
 function isTransactionValidInBlockchain(blockchain, headBlock, transaction) {
-	const utxoSet = calculateUTXOSet(blockchain, headBlock);
-	for (const input of transaction.inputs)
-		if (!utxoSet.some(utxo => utxo.hash === input.hash)) return false;
+	// const utxoSet = calculateUTXOSet(blockchain, headBlock);
+	// for (const input of transaction.inputs)
+	// 	if (!utxoSet.some(utxo => utxo.hash === input.hash)) return false;
 	return isTransactionValid(transaction);
 }
 
@@ -113,13 +109,8 @@ function isTransactionValid(transaction) {
 
 	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
 
-	if (transaction.type === "coinbase") {
-		if (transaction.inputs.length > 0) return false;
-		if (transaction.outputs.length !== 1) return false; // wrong length of output
-		if (!transaction.outputs[0].address) return false; // no miner
-		return true;
-	} else if (transaction.type === "fee") {
-		if (transaction.inputs.length > 0) return false;
+	if (!transaction.inputs.length) {
+		// potential coinbase tx
 		if (transaction.outputs.length !== 1) return false; // wrong length of output
 		if (!transaction.outputs[0].address) return false; // no miner
 		return true;
@@ -127,33 +118,38 @@ function isTransactionValid(transaction) {
 
 	if (!transaction.inputs.length || !transaction.outputs.length) return false;
 
-	const sender = transaction.inputs[0].address;
-	let totalInputAmount = 0;
-	let totalOutputAmount = 0;
+	// let totalInputAmount = 0;
+	// let totalOutputAmount = 0;
 
 	// TODO check for no duplicate utxo
+	// for (const input of transaction.inputs) {
+	// 	if (sender !== input.address) return false;
+	// 	if (input.hash !== calculateUTXOHash(input)) return false;
+	// 	totalInputAmount += input.amount;
+	// }
+
+	// for (const output of transaction.outputs) {
+	// 	if (output.hash !== calculateUTXOHash(output)) return false;
+	// 	totalOutputAmount += output.amount;
+	// }
+
+	// if (totalInputAmount < totalOutputAmount) return false;
+
+	const senderPK = transaction.inputs[0].publicKey;
+	const preImage = calculateTransactionPreImage(transaction);
+
 	for (const input of transaction.inputs) {
-		if (sender !== input.address) return false;
-		if (input.hash !== calculateUTXOHash(input)) return false;
-		totalInputAmount += input.amount;
+		if (input.publicKey !== senderPK) return false; // only one sender allowed (for now)
+		if (!input.signature) return false; // signature not present
+
+		try {
+			const key = ec.keyFromPublic(base58ToHex(senderPK), "hex");
+			if (!key.verify(preImage, input.signature)) return false; // signature not valid
+		} catch {
+			return false;
+		}
 	}
-
-	for (const output of transaction.outputs) {
-		if (output.hash !== calculateUTXOHash(output)) return false;
-		totalOutputAmount += output.amount;
-	}
-
-	if (totalInputAmount < totalOutputAmount) return false;
-
-	if (!transaction.signature) return false; // signature is present
-
-	try {
-		const key = ec.keyFromPublic(base58ToHex(sender), "hex");
-		const signature = base58ToHex(transaction.signature);
-		return key.verify(transaction.hash, signature); // signature is valid
-	} catch {
-		return false;
-	}
+	return true;
 }
 
 module.exports = {

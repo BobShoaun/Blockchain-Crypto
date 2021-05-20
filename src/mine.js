@@ -1,52 +1,21 @@
 const SHA256 = require("crypto-js/sha256");
-const { calculateTransactionHash, calculateUTXOHash } = require("./transaction.js");
+const { calculateTransactionHash, calculateUTXOSet } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigIntToHex64, hexToBigInt, evaluate } = require("./helper");
 
 function mineGenesisBlock(params, miner) {
 	const block = {
 		height: 0,
+		previousHash: null,
 		difficulty: params.initBlockDiff,
 		transactions: [],
 		timestamp: Date.now(),
 		nonce: 0,
 	};
-	return evaluate(mineBlock(params, block, miner));
+	return evaluate(mineBlock(params, [], block, block, miner));
 }
 
 function mineNewBlock(params, blockchain, headBlock, transactions, miner, targetCallback) {
-	// const utxoSet = calculateUTXOSet(blockchain, headBlock);
-
-	let totalFee = 0;
-	for (const transaction of transactions) {
-		// for (const input of transaction.inputs) {
-		// 	for (const utxo of utxoSet) {
-		// 		if (utxo.txHash === input.txHash) {
-		// 			totalFee += utxo.amount;
-		// 		}
-		// 	}
-		// }
-		for (const input of transaction.inputs) totalFee += input.amount;
-		for (const output of transaction.outputs) totalFee -= output.amount;
-	}
-
-	if (totalFee > 0) {
-		const feeOutput = {
-			address: miner,
-			amount: totalFee,
-			timestamp: Date.now(),
-		};
-		feeOutput.hash = calculateUTXOHash(feeOutput);
-		const feeTransaction = {
-			type: "fee",
-			inputs: [],
-			outputs: [feeOutput],
-		};
-		feeTransaction.hash = calculateTransactionHash(feeTransaction);
-		transactions = [feeTransaction, ...transactions];
-		// fee transaction is always at index 1
-	}
-
 	const block = {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
@@ -55,20 +24,29 @@ function mineNewBlock(params, blockchain, headBlock, transactions, miner, target
 		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
-
-	return mineBlock(params, block, miner, targetCallback);
+	return mineBlock(params, blockchain, headBlock, block, miner, targetCallback);
 }
 
-function* mineBlock(params, block, miner, targetCallback) {
+function* mineBlock(params, blockchain, headBlock, block, miner, targetCallback) {
+	const utxoSet = calculateUTXOSet(blockchain, headBlock);
+
+	let totalFee = 0;
+	for (const transaction of block.transactions) {
+		for (const input of transaction.inputs)
+			for (const utxo of utxoSet)
+				if (utxo.txHash === input.txHash && utxo.outIndex === input.outIndex)
+					totalFee += utxo.amount;
+		for (const output of transaction.outputs) totalFee -= output.amount;
+	}
+
 	const coinbaseOutput = {
 		address: miner,
-		amount: calculateBlockReward(params, block.height),
-		timestamp: Date.now(),
+		amount: calculateBlockReward(params, block.height) + totalFee,
 	};
-	coinbaseOutput.hash = calculateUTXOHash(coinbaseOutput);
 
 	const coinbaseTransaction = {
-		type: "coinbase",
+		timestamp: Date.now(),
+		version: params.version,
 		inputs: [],
 		outputs: [coinbaseOutput],
 	};
