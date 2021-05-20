@@ -89,6 +89,7 @@ function calculateBlockReward(params, height) {
 
 // get difficulty of current block.
 function calculateBlockDifficulty(params, blockchain, block) {
+	if (block.height === 0) return params.initBlockDiff; // genesis
 	const prevBlock = getPreviousBlock(blockchain, block);
 	if (block.height % params.diffRecalcHeight !== 0) return prevBlock.difficulty;
 	const prevRecalcBlock = getPreviousRecalcBlock(params, blockchain, block); // prev block diffRecalcHeight away

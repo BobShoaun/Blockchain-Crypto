@@ -58,7 +58,7 @@ test("should generate correct public key", () => {
 	expect(isAddressValid(params, addresst)).toBe(true);
 });
 
-test("invalid tx", () => {
+test("invalid tx: overdraw", () => {
 	resetCache();
 	const genesis = mineGenesisBlock(params, tomad);
 	const blockchain = createBlockchain([genesis]);
@@ -73,8 +73,12 @@ test("invalid tx", () => {
 		20,
 		0
 	);
-	expect(isBlockValid(params, genesis)).toBe(true);
+	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [tx1], bobad));
+	addBlockToBlockchain(blockchain, block1);
+
 	expect(isBlockchainValid(params, blockchain, genesis)).toBe(true);
+	expect(isBlockchainValid(params, blockchain, block1)).toBe(false);
+	// expect(isBlockValid(params, genesis)).toBe(true);
 	// expect(isTransactionValid(tx1)).toBe(false);
 });
 
@@ -135,7 +139,7 @@ test("mempool working", () => {
 	transactions.push(tx3);
 
 	// expect(isTransactionValid(tx3)).toBe(true); // has not been added to blockchain so valid by itself
-	expect(isTransactionValidInBlockchain(blockchain, block1, tx3)).toBe(true); // still valid in context of blockchain becuz not mined
+	// expect(isTransactionValidInBlockchain(blockchain, block1, tx3)).toBe(true); // still valid in context of blockchain becuz not mined
 	expect(calculateMempool(blockchain, block1, transactions)).toEqual([tx2, tx3]);
 
 	const block2 = evaluate(
@@ -151,8 +155,8 @@ test("mempool working", () => {
 
 	// expect(isTransactionValidInBlockchain(blockchain, block2, tx3)).toBe(false); // not valid in context of blockchain after mining
 
-	expect(isBlockValid(params, block2)).toBe(true); // block doesnt know about the entire blockchain, cant get utxo set
-	expect(isBlockchainValid(params, blockchain, block2)).toBe(true); // need to fix this
+	// expect(isBlockValid(params, block2)).toBe(true); // block doesnt know about the entire blockchain, cant get utxo set
+	expect(isBlockchainValid(params, blockchain, block2)).toBe(false); // need to fix this
 });
 
 test("double spending", () => {
@@ -219,7 +223,7 @@ test("double spending", () => {
 	expect(calculateBalance(blockchain, block2, tomad)).toBe(50);
 	expect(calculateBalance(blockchain, block2, ginad)).toBe(50);
 
-	// expect(isBlockchainValid(params, blockchain, block2)).toBe(true);
+	expect(isBlockchainValid(params, blockchain, block2)).toBe(true);
 
 	const tx3 = createAndSignTransaction(
 		params,
@@ -234,7 +238,7 @@ test("double spending", () => {
 	);
 	transactions.push(tx3);
 
-	expect(isTransactionValid(tx3)).toBe(false);
+	// expect(isTransactionValid(tx3)).toBe(false);
 });
 
 test("blockchain, tx, and blocks valid", () => {
@@ -279,9 +283,9 @@ test("blockchain, tx, and blocks valid", () => {
 	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [tx2, tx3], ginad));
 	addBlockToBlockchain(blockchain, block2);
 	// expect(isTransactionValid(tx1) && isTransactionValid(tx2) && isTransactionValid(tx3)).toBe(true);
-	expect(isBlockValid(params, genesis)).toBe(true);
-	expect(isBlockValid(params, block1)).toBe(true);
-	expect(isBlockValid(params, block2)).toBe(true);
+	// expect(isBlockValid(params, genesis)).toBe(true);
+	// expect(isBlockValid(params, block1)).toBe(true);
+	// expect(isBlockValid(params, block2)).toBe(true);
 	expect(isBlockchainValid(params, blockchain, block2)).toBe(true);
 	expect(calculateBalance(blockchain, block2, bobad)).toBe(0);
 	expect(calculateBalance(blockchain, block2, tomad)).toBe(30);
@@ -309,6 +313,7 @@ test("block difficulty recalculation", () => {
 		mineNewBlock(params, blockchain, getHighestValidBlock(blockchain), [], tomad)
 	);
 	expect(block2.difficulty).not.toBe(1);
+	expect(isBlockchainValid(params, blockchain, block2)).toBe(true);
 });
 
 test("params setting", () => {});

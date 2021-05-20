@@ -16,7 +16,7 @@
 		"testEnvironment": "node"
 	},
 	"scripts": {
-		"test": "jest index.test.js --verbose false -- --silent=false"
+		"test": "jest index2.test.js --verbose false -- --silent=false"
 	},
 	"author": "Ng Bob Shoaun",
 	"license": "ISC"

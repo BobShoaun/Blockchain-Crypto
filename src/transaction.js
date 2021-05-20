@@ -26,7 +26,6 @@ function calculateTransactionSet(blockchain, headBlock) {
 		: [];
 
 	const transactionSet = [...prevTxSet, ...headBlock.transactions];
-
 	transactionSets[headBlock.hash] = transactionSet;
 	return transactionSet;
 }
@@ -129,7 +128,7 @@ function calculateTransactionHash(transaction) {
 }
 
 function calculateTransactionPreImage(transaction) {
-	const txCopy = { ...transaction, inputs: [...transaction.inputs] };
+	const txCopy = JSON.parse(JSON.stringify(transaction));
 	for (const input of txCopy.inputs) input.signature = input.publicKey; // placeholder for generating pre-image
 	return calculateTransactionHash(txCopy);
 }
@@ -166,4 +165,5 @@ module.exports = {
 	createAndSignTransaction,
 	calculateUTXOHash,
 	calculateTransactionPreImage,
+	calculateTransactionSet,
 };
