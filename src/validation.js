@@ -61,8 +61,10 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 		let blkInAmt = 0;
 		let blkOutAmt = 0;
-		const utxoSet =
-			block.height > 0 ? calculateUTXOSet(blockchain, getPreviousBlock(blockchain, block)) : [];
+		let utxoSet =
+			block.height > 0
+				? [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, block))]
+				: [];
 
 		for (let j = 1; j < block.transactions.length; j++) {
 			const transaction = block.transactions[j];
@@ -75,18 +77,15 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 			let txInAmt = 0;
 			for (const input of transaction.inputs) {
-				let found = false;
-				for (const utxo of utxoSet) {
-					if (utxo.txHash === input.txHash && utxo.outIndex === input.outIndex) {
-						if (utxo.address !== getAddressFromPKHex(params, input.publicKey))
-							throw new Error("TX03: Input invalid public key");
-						txInAmt += utxo.amount;
-						found = true;
-						break;
-					}
-				}
-				if (!found)
+				const txo = utxoSet.find(
+					utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+				);
+				if (!txo)
 					throw new Error(`TX00: input ${input.txHash}:${input.outIndex} doesnt exist as a utxo`);
+				if (txo.address !== getAddressFromPKHex(params, input.publicKey))
+					throw new Error("TX03: Input invalid public key");
+				txInAmt += txo.amount;
+				utxoSet = utxoSet.filter(utxo => utxo !== txo); // reference equality is enough
 			}
 
 			let txOutAmt = 0;
