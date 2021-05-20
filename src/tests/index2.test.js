@@ -51,14 +51,14 @@ function candsTx(p, bc, hb, ssk, ad, amt, fee) {
 test("public key and address generation", () => {
 	const { sk, pk, address } = getKeys(params, "bob");
 	expect(sk).toBe("bob");
-	expect(pk).toBe("21mm3w2KGGbya45eJ9DzezFBJYgaZoyQ8mw5pe3dDpwzZ");
+	expect(pk).toBe("03693d34975550699c492463b8b299ccf70e43bae8bc409f9e0c7be0218f42173a");
 	expect(address).toBe("8obdgEpD9kqU8RqAH6j53j9bX2U62VV");
 	expect(isAddressValid(params, address)).toBe(true);
 	expect(isAddressValid(params, "8obdgEpD9kqU8RqAH6j53j9bX2U62Vv")).toBe(false);
 
 	const { sk: skt, pk: pkt, address: addresst } = getKeys(params, "tom");
 	expect(skt).toBe("tom");
-	expect(pkt).toBe("27UjWzSoNmqUGAugKEgPdq75J96eZ2UvKGqYuCgAow7CR");
+	expect(pkt).toBe("03be06b826ddf2a2fd9be6bb31d2b4a762460f1472e89091e996aa223f6c844a9e");
 	expect(addresst).toBe("8YcsQ8ANhQYQgZLWMHLW2G7JkKYVbyd");
 	expect(isAddressValid(params, addresst)).toBe(true);
 });

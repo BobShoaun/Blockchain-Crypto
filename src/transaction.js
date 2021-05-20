@@ -63,10 +63,6 @@ function calculateUTXOSet(blockchain, headBlock) {
 	return (utxoSets[headBlock.hash] = utxoSet);
 }
 
-function calculateUTXOHash(utxo) {
-	return SHA256(utxo.address + utxo.amount + utxo.timestamp).toString();
-}
-
 // amount and fee all in smallest denominations
 function createAndSignTransaction(
 	params,
@@ -163,7 +159,6 @@ module.exports = {
 	calculateTransactionHash,
 	calculateUTXOSet,
 	createAndSignTransaction,
-	calculateUTXOHash,
 	calculateTransactionPreImage,
 	calculateTransactionSet,
 };

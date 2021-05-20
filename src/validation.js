@@ -11,7 +11,7 @@ const {
 	calculateBlockDifficulty,
 } = require("./mine.js");
 const { getPreviousBlock } = require("./chain");
-const { base58ToHex } = require("./key.js");
+const { base58ToHex, getAddressFromPKHex } = require("./key.js");
 const { hexToBigInt } = require("./helper");
 
 const SHA256 = require("crypto-js/sha256");
@@ -78,6 +78,8 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				let found = false;
 				for (const utxo of utxoSet) {
 					if (utxo.txHash === input.txHash && utxo.outIndex === input.outIndex) {
+						if (utxo.address !== getAddressFromPKHex(params, input.publicKey))
+							throw new Error("TX03: Input invalid public key");
 						txInAmt += utxo.amount;
 						found = true;
 						break;
@@ -86,7 +88,14 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				if (!found)
 					throw new Error(`TX00: input ${input.txHash}:${input.outIndex} doesnt exist as a utxo`);
 			}
-			const txOutAmt = transaction.outputs.reduce((total, output) => total + output.amount, 0);
+
+			let txOutAmt = 0;
+			for (const output of transaction.outputs) {
+				if (!isAddressValid(params, output.address))
+					throw new Error("TX04: Output address invalid");
+				txOutAmt += output.amount;
+			}
+
 			if (txInAmt > txOutAmt) throw new Error("TX00: more input that output amount");
 
 			// check signature
@@ -96,7 +105,7 @@ function isBlockchainValid(params, blockchain, headBlock) {
 			for (const input of transaction.inputs) {
 				if (input.publicKey !== senderPK) throw new Error("TX00: more than one sender"); // only one sender allowed (for now)
 				try {
-					const key = ec.keyFromPublic(base58ToHex(senderPK), "hex");
+					const key = ec.keyFromPublic(senderPK, "hex");
 					if (!key.verify(preImage, input.signature)) throw new Error("TX00: signature not valid"); // signature not valid
 				} catch {
 					throw new Error("TX00: signature not valid");
@@ -255,18 +264,6 @@ function isTransactionValid(transaction) {
 	// let totalOutputAmount = 0;
 
 	// TODO check for no duplicate utxo
-	// for (const input of transaction.inputs) {
-	// 	if (sender !== input.address) return false;
-	// 	if (input.hash !== calculateUTXOHash(input)) return false;
-	// 	totalInputAmount += input.amount;
-	// }
-
-	// for (const output of transaction.outputs) {
-	// 	if (output.hash !== calculateUTXOHash(output)) return false;
-	// 	totalOutputAmount += output.amount;
-	// }
-
-	// if (totalInputAmount < totalOutputAmount) return false;
 
 	const senderPK = transaction.inputs[0].publicKey;
 	const preImage = calculateTransactionPreImage(transaction);

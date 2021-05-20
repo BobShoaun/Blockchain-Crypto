@@ -37,25 +37,23 @@ function generateKeys(params) {
 	const pkHex = keyPair.getPublic().encodeCompressed("hex");
 	const address = getAddressFromPKHex(params, pkHex);
 	const sk = hexToBase58(skHex);
-	const pk = hexToBase58(pkHex);
-	return { sk, pk, address };
+	return { sk, pk: pkHex, address };
 }
 
 function getKeys(params, skB58) {
 	const inputSkHex = base58ToHex(skB58);
 	const keyPair = ec.keyFromPrivate(inputSkHex, "hex");
 	const skHex = keyPair.getPrivate("hex");
-	const pkHex = keyPair.getPublic().encodeCompressed("hex");
+	const pkHex = keyPair.getPublic().encodeCompressed("hex"); // hex
 	const address = getAddressFromPKHex(params, pkHex);
 	const sk = hexToBase58(skHex);
-	const pk = hexToBase58(pkHex);
-	return { sk, pk, address };
+	return { sk, pk: pkHex, address };
 }
 
-function getAddressFromPKB58(params, pkB58) {
-	const pkHex = base58ToHex(pkB58);
-	return getAddressFromPKHex(params, pkHex);
-}
+// function getAddressFromPKB58(params, pkB58) {
+// 	const pkHex = base58ToHex(pkB58);
+// 	return getAddressFromPKHex(params, pkHex);
+// }
 
 function getAddressFromPKHex(params, pkHex) {
 	const hash1 = SHA256(pkHex).toString();
@@ -76,5 +74,5 @@ module.exports = {
 	generateKeys,
 	getKeys,
 	getAddressFromPKHex,
-	getAddressFromPKB58,
+	// getAddressFromPKB58,
 };
