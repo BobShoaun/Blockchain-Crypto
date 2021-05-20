@@ -97,7 +97,6 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				if (input.publicKey !== senderPK) throw new Error("TX00: more than one sender"); // only one sender allowed (for now)
 				try {
 					const key = ec.keyFromPublic(base58ToHex(senderPK), "hex");
-					console.log(preImage, input.signature, input.publicKey);
 					if (!key.verify(preImage, input.signature)) throw new Error("TX00: signature not valid"); // signature not valid
 				} catch {
 					throw new Error("TX00: signature not valid");
