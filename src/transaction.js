@@ -149,14 +149,14 @@ function updateUTXOSet(utxoSet, transaction) {
 		// only remove one as there may be duplicates (rare)
 	}
 
-	for (let i = 0; i < transaction.outputs.length; i++) {
+	transaction.outputs.forEach((output, index) =>
 		utxoSet.push({
 			txHash: transaction.hash,
-			outIndex: i,
-			address: transaction.outputs[i].address,
-			amount: transaction.outputs[i].amount,
-		});
-	}
+			outIndex: index,
+			address: output.address,
+			amount: output.amount,
+		})
+	);
 }
 
 module.exports = {
