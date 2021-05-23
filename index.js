@@ -5,6 +5,7 @@ module.exports = {
 	...require("./src/chain"),
 	...require("./src/mine"),
 	...require("./src/transaction"),
+	...require("./src/utxo"),
 	...require("./src/validation"),
 	...require("./src/helper"),
 };

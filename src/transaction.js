@@ -1,15 +1,15 @@
-const { getPreviousBlock } = require("./chain.js");
-const { base58ToHex, hexToBase58 } = require("./key.js");
+const { getPreviousBlock } = require("./chain");
+const { calculateBlockReward } = require("./mine");
+const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
+const { base58ToHex } = require("./key.js");
 
 const SHA256 = require("crypto-js/sha256");
 const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
 
-let utxoSets = {}; // cached UTXOsets for each block
 let transactionSets = {}; // cached txSet for each block
 
-function resetCache() {
-	utxoSets = {};
+function resetTransactionSets() {
 	transactionSets = {};
 }
 
@@ -27,25 +27,6 @@ function calculateTransactionSet(blockchain, headBlock) {
 
 	const transactionSet = [...prevTxSet, ...headBlock.transactions];
 	return (transactionSets[headBlock.hash] = transactionSet);
-}
-
-function calculateUTXOSet(blockchain, headBlock) {
-	if (headBlock.hash in utxoSets) return utxoSets[headBlock.hash];
-
-	const utxoSet = headBlock.previousHash
-		? [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))]
-		: [];
-
-	for (const transaction of headBlock.transactions) updateUTXOSet(utxoSet, transaction);
-
-	return (utxoSets[headBlock.hash] = utxoSet);
-}
-
-function calculateMempoolUTXOSet(blockchain, headBlock, transactions) {
-	const utxoSet = [...calculateUTXOSet(blockchain, headBlock)];
-	const mempool = calculateMempool(blockchain, headBlock, transactions);
-	for (const transaction of mempool) updateUTXOSet(utxoSet, transaction);
-	return utxoSet;
 }
 
 // amount and fee all in smallest denominations
@@ -122,52 +103,44 @@ function signTransaction(transaction, senderSK) {
 	for (const input of transaction.inputs) input.signature = signature;
 }
 
-function findUTXOs(blockchain, headBlock, transactions, address, amount) {
-	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
+function createCoinbaseTransaction(params, blockchain, headBlock, transactions, miner) {
+	const utxoSet = headBlock ? [...calculateUTXOSet(blockchain, headBlock)] : [];
 
-	// pick utxos from front to back.
-	let totalAmount = 0;
-	const utxos = [];
-	for (const utxo of utxoSet) {
-		if (totalAmount >= amount) break;
-		if (utxo.address !== address) continue;
-		totalAmount += utxo.amount;
-		utxos.push(utxo);
+	let totalFee = 0;
+	for (const transaction of transactions) {
+		for (const input of transaction.inputs) {
+			const utxo = utxoSet.find(
+				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+			);
+			totalFee += utxo.amount;
+		}
+		for (const output of transaction.outputs) totalFee -= output.amount;
+		updateUTXOSet(utxoSet, transaction);
 	}
 
-	return utxos;
-}
+	const output = {
+		address: miner,
+		amount: headBlock
+			? calculateBlockReward(params, headBlock.height + 1) + totalFee
+			: params.initBlkReward + totalFee,
+	};
 
-function updateUTXOSet(utxoSet, transaction) {
-	for (const input of transaction.inputs) {
-		// referencing same tx with same output
-		const i = utxoSet.findIndex(
-			utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
-		);
-		// utxo removed because it is now a spent output.
-		utxoSet.splice(i, 1);
-		// only remove one as there may be duplicates (rare)
-	}
-
-	transaction.outputs.forEach((output, index) =>
-		utxoSet.push({
-			txHash: transaction.hash,
-			outIndex: index,
-			address: output.address,
-			amount: output.amount,
-		})
-	);
+	const coinbaseTransaction = {
+		timestamp: Date.now(),
+		version: params.version,
+		inputs: [],
+		outputs: [output],
+	};
+	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
+	return coinbaseTransaction;
 }
 
 module.exports = {
-	resetCache,
+	resetTransactionSets,
 	calculateMempool,
 	calculateTransactionHash,
-	calculateUTXOSet,
-	calculateMempoolUTXOSet,
 	createAndSignTransaction,
 	calculateTransactionPreImage,
 	calculateTransactionSet,
-	updateUTXOSet,
-	findUTXOs,
+	createCoinbaseTransaction,
 };

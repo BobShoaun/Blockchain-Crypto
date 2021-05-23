@@ -1,10 +1,10 @@
 const {
-	calculateUTXOSet,
 	calculateTransactionSet,
 	calculateTransactionHash,
 	calculateTransactionPreImage,
-	updateUTXOSet,
-} = require("./transaction.js");
+} = require("./transaction");
+
+const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
 const {
 	calculateBlockHash,
 	calculateBlockReward,

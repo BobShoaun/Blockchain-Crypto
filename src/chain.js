@@ -45,4 +45,4 @@ module.exports = {
 	getHighestValidBlock,
 };
 
-const { calculateUTXOSet } = require("./transaction.js");
+const { calculateUTXOSet } = require("./utxo.js");

@@ -1,21 +1,20 @@
 const SHA256 = require("crypto-js/sha256");
-const { calculateTransactionHash, calculateUTXOSet, updateUTXOSet } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigIntToHex64, hexToBigInt, evaluate } = require("./helper");
 
-function mineGenesisBlock(params, miner) {
+function mineGenesisBlock(params, transactions) {
 	const block = {
 		height: 0,
 		previousHash: null,
 		difficulty: params.initBlockDiff,
-		transactions: [],
+		transactions,
 		timestamp: Date.now(),
 		nonce: 0,
 	};
-	return evaluate(mineBlock(params, [], block, block, miner));
+	return evaluate(mineBlock(params, block));
 }
 
-function mineNewBlock(params, blockchain, headBlock, transactions, miner, targetCallback) {
+function mineNewBlock(params, blockchain, headBlock, transactions, targetCallback) {
 	const block = {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
@@ -24,40 +23,10 @@ function mineNewBlock(params, blockchain, headBlock, transactions, miner, target
 		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
-	return mineBlock(params, blockchain, headBlock, block, miner, targetCallback);
+	return mineBlock(params, block, targetCallback);
 }
 
-function* mineBlock(params, blockchain, headBlock, block, miner, targetCallback) {
-	const utxoSet = [...calculateUTXOSet(blockchain, headBlock)];
-
-	let totalFee = 0;
-	for (const transaction of block.transactions) {
-		for (const input of transaction.inputs) {
-			const utxo = utxoSet.find(
-				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
-			);
-			totalFee += utxo.amount;
-		}
-		for (const output of transaction.outputs) totalFee -= output.amount;
-		updateUTXOSet(utxoSet, transaction);
-	}
-
-	const coinbaseOutput = {
-		address: miner,
-		amount: calculateBlockReward(params, block.height) + totalFee,
-	};
-
-	const coinbaseTransaction = {
-		timestamp: Date.now(),
-		version: params.version,
-		inputs: [],
-		outputs: [coinbaseOutput],
-	};
-	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
-
-	// coinbase tx must be the first transaction
-	block.transactions = [coinbaseTransaction, ...block.transactions];
-
+function* mineBlock(params, block, targetCallback) {
 	const hashTarget = calculateHashTarget(params, block);
 	targetCallback?.(bigIntToHex64(hashTarget));
 
