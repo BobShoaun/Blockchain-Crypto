@@ -3,6 +3,7 @@ const {
 	calculateTransactionSet,
 	calculateTransactionHash,
 	calculateTransactionPreImage,
+	updateUTXOSet,
 } = require("./transaction.js");
 const {
 	calculateBlockHash,
@@ -85,7 +86,7 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				if (txo.address !== getAddressFromPKHex(params, input.publicKey))
 					throw new Error("TX03: Input invalid public key");
 				txInAmt += txo.amount;
-				utxoSet = utxoSet.filter(utxo => utxo !== txo); // reference equality is enough
+				// utxoSet = utxoSet.filter(utxo => utxo !== txo); // reference equality is enough
 			}
 
 			let txOutAmt = 0;
@@ -95,7 +96,10 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				txOutAmt += output.amount;
 			}
 
-			if (txInAmt > txOutAmt) throw new Error("TX00: more input that output amount");
+			updateUTXOSet(utxoSet, transaction);
+
+			if (txInAmt !== txOutAmt)
+				throw new Error(`TX00: input is ${txInAmt} and output is ${txOutAmt}`);
 
 			// check signature
 			const senderPK = transaction.inputs[0].publicKey;

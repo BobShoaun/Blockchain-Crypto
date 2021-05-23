@@ -18,10 +18,12 @@ const {
 	generateKeys,
 	getKeys,
 	isAddressValid,
+	findUTXOs,
 } = require("../../index");
 
 const { evaluate } = require("../helper");
 
+// consensus parameters
 const params = {
 	name: "Bobcoin",
 	symbol: "BBC", // or BCX ?
@@ -39,13 +41,14 @@ const params = {
 	maxDiffCorrFact: 4,
 };
 
-const { sk: bobsk, pk: bobpk, address: bobad } = generateKeys(params);
-const { sk: tomsk, pk: tompk, address: tomad } = generateKeys(params);
-const { sk: ginsk, pk: ginpk, address: ginad } = generateKeys(params);
+const { sk: bobsk, pk: bobpk, address: bobad } = getKeys(params, "bob");
+const { sk: tomsk, pk: tompk, address: tomad } = getKeys(params, "tom");
+const { sk: ginsk, pk: ginpk, address: ginad } = getKeys(params, "gina");
 
-function candsTx(p, bc, hb, ssk, ad, amt, fee) {
+function candsTx(p, bc, hb, txs, ssk, ad, amt, fee) {
 	const { sk, pk, address } = getKeys(p, ssk);
-	return createAndSignTransaction(p, bc, hb, sk, pk, address, ad, amt, fee);
+	const utxos = findUTXOs(bc, hb, txs, address, amt + fee);
+	return createAndSignTransaction(p, utxos, sk, pk, address, ad, amt, fee);
 }
 
 test("public key and address generation", () => {
@@ -72,9 +75,11 @@ test("Genesis", () => {
 
 test("Simplest Case", () => {
 	resetCache();
+	const transactions = [];
 	const genesis = mineGenesisBlock(params, bobad);
 	const blockchain = createBlockchain([genesis]);
-	const tx1 = candsTx(params, blockchain, genesis, bobsk, tomad, 20, 0);
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
+	transactions.push(tx1);
 	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [tx1], bobad));
 	addBlockToBlockchain(blockchain, block1);
 	expect(isBlockchainValid(params, blockchain, block1)).toBe(true);
@@ -82,11 +87,19 @@ test("Simplest Case", () => {
 
 test("Mempool Simplest Case", () => {
 	resetCache();
+	const transactions = [];
 	const genesis = mineGenesisBlock(params, bobad);
 	const blockchain = createBlockchain([genesis]);
-	const tx1 = candsTx(params, blockchain, genesis, bobsk, tomad, 20, 0);
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
+	transactions.push(tx1);
 	const block1 = evaluate(
-		mineNewBlock(params, blockchain, genesis, calculateMempool(blockchain, genesis, [tx1]), bobad)
+		mineNewBlock(
+			params,
+			blockchain,
+			genesis,
+			calculateMempool(blockchain, genesis, transactions),
+			bobad
+		)
 	);
 	addBlockToBlockchain(blockchain, block1);
 	expect(isBlockchainValid(params, blockchain, block1)).toBe(true);
@@ -94,16 +107,32 @@ test("Mempool Simplest Case", () => {
 
 test("Multiple Tx per Block", () => {
 	resetCache();
+	const transactions = [];
 	const genesis = mineGenesisBlock(params, bobad);
 	const blockchain = createBlockchain([genesis]);
-	const tx1 = candsTx(params, blockchain, genesis, bobsk, tomad, 20, 0);
-	// const tx2 = candsTx(params, blockchain, genesis, bobsk, ginad, 20, 0);
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [tx1], tomad));
+
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
+	transactions.push(tx1);
+
+	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 21, 0);
+	transactions.push(tx2);
+
+	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [tx1, tx2], tomad));
 	addBlockToBlockchain(blockchain, block1);
-	const tx3 = candsTx(params, blockchain, block1, bobsk, ginad, 10, 0);
-	const tx4 = candsTx(params, blockchain, block1, tomsk, bobad, 30, 0);
-	// const tx5 = candsTx(params, blockchain, block1, ginsk, bobad, 20, 0);
-	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [tx3, tx4], bobad));
+
+	// console.log(JSON.stringify(blockchain, null, 2));
+	expect(isBlockchainValid(params, blockchain, block1)).toBe(true);
+
+	const tx3 = candsTx(params, blockchain, block1, transactions, bobsk, ginad, 9, 0);
+	transactions.push(tx3);
+
+	const tx4 = candsTx(params, blockchain, block1, transactions, tomsk, bobad, 30, 0);
+	transactions.push(tx4);
+
+	const tx5 = candsTx(params, blockchain, block1, transactions, ginsk, bobad, 20, 0);
+	transactions.push(tx5);
+
+	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [tx3, tx4, tx5], bobad));
 	addBlockToBlockchain(blockchain, block2);
 	// console.log(JSON.stringify(blockchain, null, 2));
 	expect(isBlockchainValid(params, blockchain, block2)).toBe(true);
@@ -111,12 +140,21 @@ test("Multiple Tx per Block", () => {
 
 test("Overspend within Block", () => {
 	resetCache();
+	const transactions = [];
+
 	const genesis = mineGenesisBlock(params, bobad);
 	const blockchain = createBlockchain([genesis]);
-	const tx1 = candsTx(params, blockchain, genesis, bobsk, tomad, 20, 0);
-	const tx2 = candsTx(params, blockchain, genesis, bobsk, ginad, 20, 0);
-	const tx3 = candsTx(params, blockchain, genesis, bobsk, ginad, 11, 0); // overspend
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
+	transactions.push(tx1);
+
+	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
+	transactions.push(tx2);
+
+	const tx3 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 11, 0); // overspend
+	transactions.push(tx3);
+
 	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [tx1, tx2, tx3], bobad));
 	addBlockToBlockchain(blockchain, block1);
+
 	expect(() => isBlockchainValid(params, blockchain, block1)).toThrow();
 });

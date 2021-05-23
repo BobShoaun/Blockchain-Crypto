@@ -26,48 +26,32 @@ function calculateTransactionSet(blockchain, headBlock) {
 		: [];
 
 	const transactionSet = [...prevTxSet, ...headBlock.transactions];
-	transactionSets[headBlock.hash] = transactionSet;
-	return transactionSet;
+	return (transactionSets[headBlock.hash] = transactionSet);
 }
 
 function calculateUTXOSet(blockchain, headBlock) {
 	if (headBlock.hash in utxoSets) return utxoSets[headBlock.hash];
 
-	const prevUTXOSet = headBlock.previousHash
-		? calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))
+	const utxoSet = headBlock.previousHash
+		? [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, headBlock))]
 		: [];
-	const utxoSet = [...prevUTXOSet];
 
-	for (const transaction of headBlock.transactions) {
-		for (const input of transaction.inputs) {
-			for (let i = 0; i < utxoSet.length; i++) {
-				// utxo removed because it is now a spent output.
-				if (utxoSet[i].txHash === input.txHash && utxoSet[i].outIndex === input.outIndex) {
-					// referencing same tx with same output
-					utxoSet.splice(i, 1);
-					break; // only remove one as there may be duplicates (rare)
-				}
-			}
-		}
-
-		for (let i = 0; i < transaction.outputs.length; i++) {
-			utxoSet.push({
-				txHash: transaction.hash,
-				outIndex: i,
-				address: transaction.outputs[i].address,
-				amount: transaction.outputs[i].amount,
-			});
-		}
-	}
+	for (const transaction of headBlock.transactions) updateUTXOSet(utxoSet, transaction);
 
 	return (utxoSets[headBlock.hash] = utxoSet);
+}
+
+function calculateMempoolUTXOSet(blockchain, headBlock, transactions) {
+	const utxoSet = [...calculateUTXOSet(blockchain, headBlock)];
+	const mempool = calculateMempool(blockchain, headBlock, transactions);
+	for (const transaction of mempool) updateUTXOSet(utxoSet, transaction);
+	return utxoSet;
 }
 
 // amount and fee all in smallest denominations
 function createAndSignTransaction(
 	params,
-	blockchain,
-	headBlock,
+	utxos,
 	senderSK,
 	senderPK,
 	senderAdd,
@@ -75,17 +59,18 @@ function createAndSignTransaction(
 	amount,
 	fee
 ) {
-	const [utxos, totalAmount] = findUTXOs(blockchain, headBlock, senderAdd, amount + fee);
-
 	const inputs = [];
+	let totalInputAmt = 0;
 
-	for (const utxo of utxos)
+	for (const utxo of utxos) {
 		inputs.push({
 			txHash: utxo.txHash,
 			outIndex: utxo.outIndex,
 			publicKey: senderPK,
 			signature: null,
 		});
+		totalInputAmt += utxo.amount;
+	}
 
 	const payment = {
 		address: recipientAdd,
@@ -93,7 +78,7 @@ function createAndSignTransaction(
 	};
 	const outputs = [payment];
 
-	const changeAmount = totalAmount - amount - fee;
+	const changeAmount = totalInputAmt - amount - fee;
 	if (changeAmount > 0) {
 		const change = {
 			address: senderAdd,
@@ -137,8 +122,8 @@ function signTransaction(transaction, senderSK) {
 	for (const input of transaction.inputs) input.signature = signature;
 }
 
-function findUTXOs(blockchain, headBlock, address, amount) {
-	const utxoSet = calculateUTXOSet(blockchain, headBlock);
+function findUTXOs(blockchain, headBlock, transactions, address, amount) {
+	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
 
 	// pick utxos from front to back.
 	let totalAmount = 0;
@@ -150,7 +135,28 @@ function findUTXOs(blockchain, headBlock, address, amount) {
 		utxos.push(utxo);
 	}
 
-	return [utxos, totalAmount];
+	return utxos;
+}
+
+function updateUTXOSet(utxoSet, transaction) {
+	for (const input of transaction.inputs) {
+		// referencing same tx with same output
+		const i = utxoSet.findIndex(
+			utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+		);
+		// utxo removed because it is now a spent output.
+		utxoSet.splice(i, 1);
+		// only remove one as there may be duplicates (rare)
+	}
+
+	for (let i = 0; i < transaction.outputs.length; i++) {
+		utxoSet.push({
+			txHash: transaction.hash,
+			outIndex: i,
+			address: transaction.outputs[i].address,
+			amount: transaction.outputs[i].amount,
+		});
+	}
 }
 
 module.exports = {
@@ -158,7 +164,10 @@ module.exports = {
 	calculateMempool,
 	calculateTransactionHash,
 	calculateUTXOSet,
+	calculateMempoolUTXOSet,
 	createAndSignTransaction,
 	calculateTransactionPreImage,
 	calculateTransactionSet,
+	updateUTXOSet,
+	findUTXOs,
 };

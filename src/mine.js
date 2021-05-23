@@ -1,5 +1,5 @@
 const SHA256 = require("crypto-js/sha256");
-const { calculateTransactionHash, calculateUTXOSet } = require("./transaction.js");
+const { calculateTransactionHash, calculateUTXOSet, updateUTXOSet } = require("./transaction.js");
 const { getPreviousBlock } = require("./chain.js");
 const { bigIntToHex64, hexToBigInt, evaluate } = require("./helper");
 
@@ -28,15 +28,18 @@ function mineNewBlock(params, blockchain, headBlock, transactions, miner, target
 }
 
 function* mineBlock(params, blockchain, headBlock, block, miner, targetCallback) {
-	const utxoSet = calculateUTXOSet(blockchain, headBlock);
+	const utxoSet = [...calculateUTXOSet(blockchain, headBlock)];
 
 	let totalFee = 0;
 	for (const transaction of block.transactions) {
-		for (const input of transaction.inputs)
-			for (const utxo of utxoSet)
-				if (utxo.txHash === input.txHash && utxo.outIndex === input.outIndex)
-					totalFee += utxo.amount;
+		for (const input of transaction.inputs) {
+			const utxo = utxoSet.find(
+				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+			);
+			totalFee += utxo.amount;
+		}
 		for (const output of transaction.outputs) totalFee -= output.amount;
+		updateUTXOSet(utxoSet, transaction);
 	}
 
 	const coinbaseOutput = {
@@ -84,7 +87,7 @@ function calculateBlockHash(block) {
 function calculateBlockReward(params, height) {
 	const n = Math.trunc(height / params.blkRewardHalflife);
 	if (n == 0) return params.initBlkReward;
-	return params.initBlkReward / (2 * n);
+	return Math.trunc(params.initBlkReward / (2 * n)); // cant have floating point coins
 }
 
 // get difficulty of current block.
