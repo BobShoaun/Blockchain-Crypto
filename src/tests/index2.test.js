@@ -21,9 +21,12 @@ const {
 	createCoinbaseTransaction,
 	resetTransactionSets,
 	resetUtxoSets,
+	getTxBlock,
+	getBlockConfirmations,
 } = require("../../index");
 
 const { evaluate } = require("../helper");
+const { isCoinbaseTxValid, isBlockValidInBlockchain } = require("../validation");
 
 // consensus parameters
 const params = {
@@ -162,4 +165,86 @@ test("Overspend within Block", () => {
 	addBlockToBlockchain(blockchain, block1);
 
 	expect(() => isBlockchainValid(params, blockchain, block1)).toThrow();
+});
+
+test("confirmations and txblock", () => {
+	const [blockchain, transactions, genesis] = initGen();
+
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 11, 0);
+	transactions.push(tx1);
+
+	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
+	transactions.push(tx2);
+
+	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2], ginad);
+	transactions.push(cb1);
+
+	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]));
+	addBlockToBlockchain(blockchain, block1);
+
+	expect(getBlockConfirmations(blockchain, block1)).toBe(1);
+	expect(getBlockConfirmations(blockchain, genesis)).toBe(2);
+
+	const tx3 = candsTx(params, blockchain, block1, transactions, ginsk, tomad, 2, 0);
+	transactions.push(tx3);
+
+	const cb2 = createCoinbaseTransaction(params, blockchain, block1, [tx3], bobad);
+	transactions.push(cb2);
+
+	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [cb2, tx3]));
+	addBlockToBlockchain(blockchain, block2);
+
+	expect(getBlockConfirmations(blockchain, genesis)).toBe(3);
+	expect(getBlockConfirmations(blockchain, block1)).toBe(2);
+	expect(getBlockConfirmations(blockchain, block2)).toBe(1);
+
+	const tx4 = candsTx(params, blockchain, block2, transactions, bobsk, tomad, 22, 0);
+	transactions.push(tx4);
+
+	expect(getTxBlock(blockchain, tx1)).toBe(block1);
+	expect(getTxBlock(blockchain, tx3)).toBe(block2);
+	expect(getTxBlock(blockchain, cb2)).toBe(block2);
+	expect(getTxBlock(blockchain, tx4)).toBe(null);
+});
+
+test("tx and block validations", () => {
+	const [blockchain, transactions, genesis] = initGen();
+
+	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 11, 0);
+	transactions.push(tx1);
+
+	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
+	transactions.push(tx2);
+
+	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2], ginad);
+	transactions.push(cb1);
+
+	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]));
+	addBlockToBlockchain(blockchain, block1);
+
+	expect(isTransactionValid(params, tx1)).toBe(true);
+	expect(isTransactionValid(params, tx2)).toBe(true);
+	expect(isCoinbaseTxValid(params, cb1)).toBe(true);
+	expect(isBlockValidInBlockchain(params, blockchain, genesis)).toBe(true);
+	expect(isBlockValidInBlockchain(params, blockchain, block1)).toBe(true);
+
+	const tx3 = candsTx(params, blockchain, block1, transactions, ginsk, tomad, 2, 0);
+	transactions.push(tx3);
+
+	const cb2 = createCoinbaseTransaction(params, blockchain, block1, [tx3], bobad);
+	transactions.push(cb2);
+
+	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [cb2, tx3]));
+	addBlockToBlockchain(blockchain, block2);
+
+	expect(isTransactionValid(params, tx3)).toBe(true);
+	expect(isCoinbaseTxValid(params, cb2)).toBe(true);
+	expect(isBlockValidInBlockchain(params, blockchain, genesis)).toBe(true);
+	expect(isBlockValidInBlockchain(params, blockchain, block1)).toBe(true);
+	expect(isBlockValidInBlockchain(params, blockchain, block2)).toBe(true);
+
+	const tx4 = candsTx(params, blockchain, block2, transactions, bobsk, tomad, 22, 0);
+	transactions.push(tx4);
+
+	expect(isTransactionValid(params, tx4)).toBe(true);
 });

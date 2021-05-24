@@ -51,14 +51,15 @@ function isBlockchainValid(params, blockchain, headBlock) {
 		if (block.hash !== currBlockHash) continue;
 
 		// ---- block check ----
-		if (block.height < 0) return false; // height invalid
-		if (!block.transactions.length) return false; // must have at least 1 tx (coinbase)
-		if (block.hash !== calculateBlockHash(block)) return false; // block hash invalid
-		if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block)) return false;
+		if (block.height < 0) throw new Error("BLK00: invalid height"); // height invalid
+		if (!block.transactions.length) throw new Error("BLK01: no transactions"); // must have at least 1 tx (coinbase)
+		if (block.hash !== calculateBlockHash(block)) throw new Error("BLK02: invalid hash"); // block hash invalid
+		if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
+			throw new Error("BLK03: invalid difficulty");
 
 		const hashTarget = calculateHashTarget(params, block);
 		const blockHash = hexToBigInt(block.hash);
-		if (blockHash > hashTarget) return false; // block hash not within difficulty
+		if (blockHash > hashTarget) throw new Error("BLK04: hash not within target"); // block hash not within difficulty
 
 		let blkInAmt = 0;
 		let blkOutAmt = 0;
@@ -86,7 +87,6 @@ function isBlockchainValid(params, blockchain, headBlock) {
 				if (txo.address !== getAddressFromPKHex(params, input.publicKey))
 					throw new Error("TX03: Input invalid public key");
 				txInAmt += txo.amount;
-				// utxoSet = utxoSet.filter(utxo => utxo !== txo); // reference equality is enough
 			}
 
 			let txOutAmt = 0;
@@ -121,21 +121,25 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 		// ---- coinbase transaction ----
 		const coinbaseTx = block.transactions[0];
-		if (coinbaseTx.hash !== calculateTransactionHash(coinbaseTx)) return false; // hash is invalid
-		if (!coinbaseTx.version || !coinbaseTx.timestamp) return false;
-		if (coinbaseTx.inputs.length > 0) return false; // coinbase must not have inputs
-		if (coinbaseTx.outputs.length !== 1) return false; // wrong output length
-		if (!isAddressValid(params, coinbaseTx.outputs[0].address)) return false; // miner address invalid
+		if (coinbaseTx.hash !== calculateTransactionHash(coinbaseTx))
+			throw new Error("CB00: invalid hash"); // hash is invalid
+		if (!coinbaseTx.version || !coinbaseTx.timestamp)
+			throw new Error("CB01: no version or timestamp");
+		if (coinbaseTx.inputs.length > 0) throw new Error("CB02: more than 0 inputs"); // coinbase must not have inputs
+		if (coinbaseTx.outputs.length !== 1) throw new Error("CB03: invalid output length"); // wrong output length
+		if (!isAddressValid(params, coinbaseTx.outputs[0].address))
+			throw new Error("CB04: invalid miner address"); // miner address invalid
 
 		const coinbaseAmt = coinbaseTx.outputs[0].amount;
 		const fee = blkOutAmt - blkInAmt;
 		const blockReward = calculateBlockReward(params, block.height);
-		if (coinbaseAmt > fee + blockReward) return false; // coinbase amt larger than allowed
+		if (coinbaseAmt > fee + blockReward) throw new Error("CB05: reward larger than allowed"); // coinbase amt larger than allowed
 		// ---- end coinbase tx ----
 
 		// ---- end block check ----
 		if (block.height === 0 && !block.previousHash) return true; // reached genesis
-		if (prevBlock !== headBlock && prevBlock.height !== block.height + 1) return false; // previous block with unmatching heights
+		if (prevBlock !== headBlock && prevBlock.height !== block.height + 1)
+			throw new Error("BC00: prev block with unmatching heights"); // previous block with unmatching heights
 
 		prevBlock = block;
 		currBlockHash = block.previousHash;
@@ -145,141 +149,130 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 // is the block valid in the context of the entire blockchain?
 function isBlockValidInBlockchain(params, blockchain, block) {
-	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block)) return false;
-	return isBlockValid(params, block);
-}
-
-function isBlockValid(params, block) {
-	if (block.height < 0) return false; // height valid
-	if (block.hash !== calculateBlockHash(block)) return false; // block hash valid
+	if (block.height < 0) throw new Error("BLK00: invalid height"); // height invalid
+	if (!block.transactions.length) throw new Error("BLK01: no transactions"); // must have at least 1 tx (coinbase)
+	if (block.hash !== calculateBlockHash(block)) throw new Error("BLK02: invalid hash"); // block hash invalid
+	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
+		throw new Error("BLK03: invalid difficulty");
 
 	const hashTarget = calculateHashTarget(params, block);
-
 	const blockHash = hexToBigInt(block.hash);
-	if (blockHash > hashTarget) return false; // block hash fits difficulty
+	if (blockHash > hashTarget) throw new Error("BLK04: hash not within target"); // block hash not within difficulty
 
-	// const totalInputAmount = block.transactions.reduce(
-	// 	(total, tx) => total + tx.inputs.reduce((total, input) => total + input.amount, 0),
-	// 	0
-	// );
+	let blkInAmt = 0;
+	let blkOutAmt = 0;
+	let utxoSet =
+		block.height > 0 ? [...calculateUTXOSet(blockchain, getPreviousBlock(blockchain, block))] : [];
 
-	// const totalOutputAmount = block.transactions.reduce(
-	// 	(total, tx) => total + tx.outputs.reduce((total, output) => total + output.amount, 0),
-	// 	0
-	// );
+	for (let j = 1; j < block.transactions.length; j++) {
+		const transaction = block.transactions[j];
+		if (!transaction.inputs.length || !transaction.outputs.length)
+			throw new Error("TX00: invalid input and output lengths");
+		if (transaction.hash !== calculateTransactionHash(transaction))
+			throw new Error("TX01: invalid hash"); // hash is invalid
+		if (!transaction.version || !transaction.timestamp)
+			throw new Error("TX02: no version or timestamp");
 
-	// const fee = totalInputAmount + blockReward - totalOutputAmount;
-	const blockReward = calculateBlockReward(params, block.height);
-
-	// let miner = null;
-	let coinbaseFound = false;
-
-	for (const transaction of block.transactions) {
-		if (!isTransactionValid(transaction)) return false;
-		if (!transaction.inputs.length) {
-			// coinbase
-			if (coinbaseFound) return false; // more than one coinbase tx
-			// if (transaction.outputs[0].amount !== blockReward) return false; // invalid reward
-			// miner = transaction.outputs[0].address; // coinbase always first
-			coinbaseFound = true;
+		let txInAmt = 0;
+		for (const input of transaction.inputs) {
+			const txo = utxoSet.find(
+				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+			);
+			if (!txo)
+				throw new Error(`TX00: input ${input.txHash}:${input.outIndex} doesnt exist as a utxo`);
+			if (txo.address !== getAddressFromPKHex(params, input.publicKey))
+				throw new Error("TX03: Input invalid public key");
+			txInAmt += txo.amount;
 		}
-	}
-	return true;
-}
 
-function isTransactionValidInBlockchain(blockchain, minedBlock, transaction) {
-	if (!transaction.inputs || !transaction.outputs) return false;
+		let txOutAmt = 0;
+		for (const output of transaction.outputs) {
+			if (!isAddressValid(params, output.address)) throw new Error("TX04: Output address invalid");
+			txOutAmt += output.amount;
+		}
 
-	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
-	if (!transaction.version || !transaction.timestamp) return false;
+		updateUTXOSet(utxoSet, transaction);
 
-	const transactionSet = calculateTransactionSet(blockchain, minedBlock);
+		if (txInAmt !== txOutAmt)
+			throw new Error(`TX00: input is ${txInAmt} and output is ${txOutAmt}`);
 
-	if (!transaction.inputs.length) {
-		// potential coinbase tx
-		if (transaction.outputs.length !== 1) return false; // wrong length of output
-		if (!transaction.outputs[0].address) return false; // no miner
+		// check signature
+		const senderPK = transaction.inputs[0].publicKey;
+		const preImage = calculateTransactionPreImage(transaction);
 
-		const outputAmount = transaction.output[0].amount;
-		const blockReward = calculateBlockReward(params, minedBlock.height);
-		const fee = outputAmount + blockReward - inputAmount;
-		return true;
-	}
-	// normal transaction
-
-	if (!transaction.inputs.length || !transaction.outputs.length) return false;
-
-	const utxoSet = calculateUTXOSet(blockchain, minedBlock);
-
-	let inputAmount = 0;
-	for (const input of transaction.inputs) {
-		let found = false;
-		for (const utxo of utxoSet) {
-			if (utxo.txHash === input.txHash && utxo.outIndex === input.outIndex) {
-				inputAmount += utxo.amount;
-				found = true;
-				break;
+		for (const input of transaction.inputs) {
+			if (input.publicKey !== senderPK) throw new Error("TX00: more than one sender"); // only one sender allowed (for now)
+			try {
+				const key = ec.keyFromPublic(senderPK, "hex");
+				if (!key.verify(preImage, input.signature)) throw new Error("TX00: signature not valid"); // signature not valid
+			} catch {
+				throw new Error("TX00: signature not valid");
 			}
 		}
-		if (!found) return false; // input doesnt exist as a utxo
+
+		blkInAmt += txInAmt;
+		blkOutAmt += txOutAmt;
 	}
 
-	let outputAmount = transaction.outputs.reduce((total, output) => total + output.amount, 0);
+	// ---- coinbase transaction ----
+	const coinbaseTx = block.transactions[0];
+	if (coinbaseTx.hash !== calculateTransactionHash(coinbaseTx))
+		throw new Error("CB00: invalid hash"); // hash is invalid
+	if (!coinbaseTx.version || !coinbaseTx.timestamp)
+		throw new Error("CB01: no version or timestamp");
+	if (coinbaseTx.inputs.length > 0) throw new Error("CB02: more than 0 inputs"); // coinbase must not have inputs
+	if (coinbaseTx.outputs.length !== 1) throw new Error("CB03: invalid output length"); // wrong output length
+	if (!isAddressValid(params, coinbaseTx.outputs[0].address))
+		throw new Error("CB04: invalid miner address"); // miner address invalid
 
-	if (inputAmount > outputAmount) return false; // more input that output
+	const coinbaseAmt = coinbaseTx.outputs[0].amount;
+	const fee = blkOutAmt - blkInAmt;
+	const blockReward = calculateBlockReward(params, block.height);
+	if (coinbaseAmt > fee + blockReward) throw new Error("CB05: reward larger than allowed"); // coinbase amt larger than allowed
+	// ---- end coinbase tx ----
 
-	// TODO check for no duplicate utxo
-
-	const senderPK = transaction.inputs[0].publicKey;
-	const preImage = calculateTransactionPreImage(transaction);
-
-	for (const input of transaction.inputs) {
-		if (input.publicKey !== senderPK) return false; // only one sender allowed (for now)
-		if (!input.signature) return false; // signature not present
-
-		try {
-			const key = ec.keyFromPublic(base58ToHex(senderPK), "hex");
-			if (!key.verify(preImage, input.signature)) return false; // signature not valid
-		} catch {
-			return false;
-		}
-	}
 	return true;
-
-	return isTransactionValid(transaction);
 }
 
-function isTransactionValid(transaction) {
-	if (!transaction.inputs || !transaction.outputs) return false;
+function isBlockValid(params, block) {}
 
-	if (transaction.hash !== calculateTransactionHash(transaction)) return false; // hash is valid
+function isTransactionValidInBlockchain(blockchain, minedBlock, transaction) {}
 
-	if (!transaction.inputs.length) {
-		// potential coinbase tx
-		if (transaction.outputs.length !== 1) return false; // wrong length of output
-		if (!transaction.outputs[0].address) return false; // no miner
-		return true;
-	}
+function isCoinbaseTxValid(params, coinbaseTx) {
+	if (coinbaseTx.hash !== calculateTransactionHash(coinbaseTx))
+		throw new Error("CB00: invalid hash"); // hash is invalid
+	if (!coinbaseTx.version || !coinbaseTx.timestamp)
+		throw new Error("CB01: no version or timestamp");
+	if (coinbaseTx.inputs.length > 0) throw new Error("CB02: more than 0 inputs"); // coinbase must not have inputs
+	if (coinbaseTx.outputs.length !== 1) throw new Error("CB03: invalid output length"); // wrong output length
+	if (!isAddressValid(params, coinbaseTx.outputs[0].address))
+		throw new Error("CB04: invalid miner address"); // miner address invalid
+	return true;
+}
 
-	if (!transaction.inputs.length || !transaction.outputs.length) return false;
+// assuming it is not coinbase
+function isTransactionValid(params, transaction) {
+	if (!transaction.inputs.length || !transaction.outputs.length)
+		throw new Error("TX00: invalid input and output lengths");
+	if (transaction.hash !== calculateTransactionHash(transaction))
+		throw new Error("TX01: invalid hash"); // hash is invalid
+	if (!transaction.version || !transaction.timestamp)
+		throw new Error("TX02: no version or timestamp");
 
-	// let totalInputAmount = 0;
-	// let totalOutputAmount = 0;
+	for (const output of transaction.outputs)
+		if (!isAddressValid(params, output.address)) throw new Error("TX04: Output address invalid");
 
-	// TODO check for no duplicate utxo
-
+	// check signature
 	const senderPK = transaction.inputs[0].publicKey;
 	const preImage = calculateTransactionPreImage(transaction);
 
 	for (const input of transaction.inputs) {
-		if (input.publicKey !== senderPK) return false; // only one sender allowed (for now)
-		if (!input.signature) return false; // signature not present
-
+		if (input.publicKey !== senderPK) throw new Error("TX00: more than one sender"); // only one sender allowed (for now)
 		try {
-			const key = ec.keyFromPublic(base58ToHex(senderPK), "hex");
-			if (!key.verify(preImage, input.signature)) return false; // signature not valid
+			const key = ec.keyFromPublic(senderPK, "hex");
+			if (!key.verify(preImage, input.signature)) throw new Error("TX00: signature not valid"); // signature not valid
 		} catch {
-			return false;
+			throw new Error("TX00: signature not valid");
 		}
 	}
 	return true;
@@ -293,4 +286,5 @@ module.exports = {
 	isBlockValid,
 	isTransactionValid,
 	isTransactionValidInBlockchain,
+	isCoinbaseTxValid,
 };

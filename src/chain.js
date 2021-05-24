@@ -24,6 +24,7 @@ function getPreviousBlock(blockchain, block) {
 	throw Error("no prev block found in blockchain");
 }
 
+// get highest and earliest block in the chain
 function getHighestValidBlock(blockchain) {
 	const maxHeight = blockchain[blockchain.length - 1].height;
 	let earliestBlock = blockchain[blockchain.length - 1];
@@ -37,12 +38,24 @@ function getHighestValidBlock(blockchain) {
 // returns new blockchain with invalid and unecessasary blocks removed
 function pruneBlockchain(blockchain) {}
 
+function getBlockConfirmations(blockchain, block) {
+	const highestValidBlock = getHighestValidBlock(blockchain);
+	let prevBlockHash = highestValidBlock.hash;
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].hash !== prevBlockHash) continue;
+		if (block.hash === prevBlockHash) return highestValidBlock.height - block.height + 1;
+		prevBlockHash = blockchain[i].previousHash;
+	}
+	return 0; // not confirmed yet.
+}
+
 module.exports = {
 	createBlockchain,
 	addBlockToBlockchain,
 	calculateBalance,
 	getPreviousBlock,
 	getHighestValidBlock,
+	getBlockConfirmations,
 };
 
 const { calculateUTXOSet } = require("./utxo.js");

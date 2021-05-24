@@ -1,4 +1,4 @@
-const { getPreviousBlock } = require("./chain");
+const { getPreviousBlock, getHighestValidBlock } = require("./chain");
 const { calculateBlockReward } = require("./mine");
 const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
 const { base58ToHex } = require("./key.js");
@@ -135,6 +135,32 @@ function createCoinbaseTransaction(params, blockchain, headBlock, transactions, 
 	return coinbaseTransaction;
 }
 
+function getTxBlock(blockchain, transaction) {
+	const highestValid = getHighestValidBlock(blockchain);
+	let prevBlockHash = highestValid.hash;
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].hash !== prevBlockHash) continue;
+		if (blockchain[i].transactions.some(tx => tx.hash === transaction.hash)) return blockchain[i];
+		prevBlockHash = blockchain[i].previousHash;
+	}
+	return null; // not in block yet.
+}
+
+function getAddressTxs(blockchain, address) {
+	const transactions = calculateTransactionSet(blockchain, getHighestValidBlock(blockchain));
+	const receivedTxs = [];
+	const sentTxs = [];
+	for (const transaction of transactions) {
+		if (transaction.outputs.some(output => output.address === address))
+			receivedTxs.push(transaction);
+	}
+	for (const transaction of transactions) {
+		if (transaction.inputs.some(input => receivedTxs.some(tx => tx.hash === input.txHash)))
+			sentTxs.push(transaction);
+	}
+	return [receivedTxs, sentTxs];
+}
+
 module.exports = {
 	resetTransactionSets,
 	calculateMempool,
@@ -143,4 +169,5 @@ module.exports = {
 	calculateTransactionPreImage,
 	calculateTransactionSet,
 	createCoinbaseTransaction,
+	getTxBlock,
 };
