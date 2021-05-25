@@ -170,4 +170,5 @@ module.exports = {
 	calculateTransactionSet,
 	createCoinbaseTransaction,
 	getTxBlock,
+	getAddressTxs,
 };
