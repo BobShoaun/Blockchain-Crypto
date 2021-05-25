@@ -1,6 +1,6 @@
 {
 	"name": "blockchain-crypto",
-	"version": "2.4.3",
+	"version": "2.4.4",
 	"description": "blockchain service",
 	"main": "index.js",
 	"dependencies": {
