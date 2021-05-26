@@ -52,14 +52,15 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 		// ---- block check ----
 		if (block.height < 0) throw new Error("BLK00: invalid height"); // height invalid
-		if (!block.transactions.length) throw new Error("BLK01: no transactions"); // must have at least 1 tx (coinbase)
-		if (block.hash !== calculateBlockHash(block)) throw new Error("BLK02: invalid hash"); // block hash invalid
+		if (!block.version || !block.timestamp) throw new Error("BL01: no version or timestamp");
+		if (!block.transactions.length) throw new Error("BLK02: no transactions"); // must have at least 1 tx (coinbase)
+		if (block.hash !== calculateBlockHash(block)) throw new Error("BLK03: invalid hash"); // block hash invalid
 		if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
-			throw new Error("BLK03: invalid difficulty");
+			throw new Error("BLK04: invalid difficulty");
 
 		const hashTarget = calculateHashTarget(params, block);
 		const blockHash = hexToBigInt(block.hash);
-		if (blockHash > hashTarget) throw new Error("BLK04: hash not within target"); // block hash not within difficulty
+		if (blockHash > hashTarget) throw new Error("BLK05: hash not within target"); // block hash not within difficulty
 
 		let blkInAmt = 0;
 		let blkOutAmt = 0;
@@ -150,6 +151,7 @@ function isBlockchainValid(params, blockchain, headBlock) {
 // is the block valid in the context of the entire blockchain?
 function isBlockValidInBlockchain(params, blockchain, block) {
 	if (block.height < 0) throw new Error("BLK00: invalid height"); // height invalid
+	if (!block.version || !block.timestamp) throw new Error("BL01: no version or timestamp");
 	if (!block.transactions.length) throw new Error("BLK01: no transactions"); // must have at least 1 tx (coinbase)
 	if (block.hash !== calculateBlockHash(block)) throw new Error("BLK02: invalid hash"); // block hash invalid
 	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))

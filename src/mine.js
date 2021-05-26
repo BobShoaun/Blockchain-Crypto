@@ -6,9 +6,10 @@ function mineGenesisBlock(params, transactions) {
 	const block = {
 		height: 0,
 		previousHash: null,
-		difficulty: params.initBlockDiff,
 		transactions,
 		timestamp: Date.now(),
+		version: params.version,
+		difficulty: params.initBlockDiff,
 		nonce: 0,
 	};
 	return evaluate(mineBlock(params, block));
@@ -20,6 +21,7 @@ function mineNewBlock(params, blockchain, headBlock, transactions, targetCallbac
 		previousHash: headBlock.hash,
 		transactions,
 		timestamp: Date.now(),
+		version: params.version,
 		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
@@ -45,10 +47,11 @@ function* mineBlock(params, block, targetCallback) {
 function calculateBlockHash(block) {
 	return SHA256(
 		block.height +
-			block.difficulty +
-			JSON.stringify(block.transactions) +
-			block.timestamp +
 			block.previousHash +
+			JSON.stringify(block.transactions.map(tx => tx.hash)) +
+			block.timestamp +
+			block.version +
+			block.difficulty +
 			block.nonce
 	).toString();
 }

@@ -84,8 +84,20 @@ function calculateTransactionHash(transaction) {
 	return SHA256(
 		transaction.timestamp +
 			transaction.version +
-			JSON.stringify(transaction.inputs) +
-			JSON.stringify(transaction.outputs)
+			JSON.stringify(
+				transaction.inputs.map(input => ({
+					txHash: input.txHash,
+					outIndex: input.outIndex,
+					publicKey: input.publicKey,
+					signature: input.signature,
+				}))
+			) +
+			JSON.stringify(
+				transaction.outputs.map(output => ({
+					address: output.address,
+					amount: output.amount,
+				}))
+			)
 	).toString();
 }
 
