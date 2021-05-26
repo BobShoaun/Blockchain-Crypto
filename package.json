@@ -1,5 +1,5 @@
 {
-	"name": "blockchain-crypto",
+	"name": "blockcrypto",
 	"version": "2.4.5",
 	"description": "blockchain service",
 	"main": "index.js",
@@ -18,6 +18,25 @@
 	"scripts": {
 		"test": "jest index2.test.js --verbose false -- --silent=false"
 	},
+	"keywords": [
+		"blockchain",
+		"blockchain.js",
+		"crypto",
+		"cryptocurrency",
+		"bitcoin",
+		"bobcoin",
+		"blockchain-crypto",
+		"blockcrypto",
+		"crypto.js"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/BobShoaun/Blockchain-Crypto.git"
+	},
+	"bugs": {
+		"url": "https://github.com/BobShoaun/Blockchain-Crypto/issues"
+	},
+	"homepage": "https://github.com/BobShoaun/Blockchain-Crypto#readme",
 	"author": "Ng Bob Shoaun",
 	"license": "ISC"
 }

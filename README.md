@@ -1,11 +1,11 @@
-# Blockchain-Crypto
+# BlockCrypto
 
 This is a core blockchain package coded in Javascript which contains business logic for managing a blockchain cryptocurrency. This blockchain implementation closely resembles that of Bitcoin. Much thanks to the many online resources and youtube videos which helped in the making of this package.
 
 # Installation
 
 ```
-npm install blockchain-crypto
+npm install blockcrypto
 ```
 
 # How it works?
