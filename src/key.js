@@ -65,6 +65,17 @@ function getAddressFromPKHex(params, pkHex) {
 	return hexToBase58(pkHash);
 }
 
+function generateVanityAddress(params, regex) {
+	const limit = 1000000;
+	for (let i = 0; i < limit; i++) {
+		const keys = generateKeys(params);
+		if (regex.test(keys.address)) return keys;
+	}
+	throw new Error(
+		`Vanity address not found after ${limit} tries, try again or decrease requirements.`
+	);
+}
+
 module.exports = {
 	base58ToHex,
 	hexToBase58,
@@ -74,5 +85,5 @@ module.exports = {
 	generateKeys,
 	getKeys,
 	getAddressFromPKHex,
-	// getAddressFromPKB58,
+	generateVanityAddress,
 };
