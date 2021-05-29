@@ -58,8 +58,7 @@ function calculateBlockHash(block) {
 
 function calculateBlockReward(params, height) {
 	const n = Math.trunc(height / params.blkRewardHalflife);
-	if (n == 0) return params.initBlkReward;
-	return Math.trunc(params.initBlkReward / (2 * n)); // cant have floating point coins
+	return Math.trunc(params.initBlkReward / 2 ** n); // cant be decimal, truncated
 }
 
 // get difficulty of current block.
