@@ -44,8 +44,20 @@ const params = {
 	diffRecalcHeight: 20, // in block height
 	minDiffCorrFact: 1 / 4,
 	maxDiffCorrFact: 4,
-	blkMaturity: 8, // number of blocks that has to be mined on top (confirmations) to be considered matured
+	blkMaturity: 8, // number of blocks that has to be mined on top (confirmations + 1) to be considered matured
 	hardCap: 500_000_000 * 100_000_000, // upper bound to amt of coins in circulation
+	/*
+
+  infinite sum of: 
+  (blkRewardHalflife * initBlkReward) / 2 ^ n 
+  from n = 0 -> inf
+  gives us the hardCap.
+
+  blkRewardHalflife: 100_000
+  initBlkReward: 4096 * coin
+  give us hardCap: 819_200_000 * coin 
+
+  */
 };
 
 const { sk: bobsk, pk: bobpk, address: bobad } = getKeys(params, "bob");
