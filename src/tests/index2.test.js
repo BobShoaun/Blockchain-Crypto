@@ -36,7 +36,7 @@ const params = {
 	version: 1,
 	addressPre: "06",
 	checksumLen: 4,
-	initBlkReward: 500_00_000_000, // in coins
+	initBlkReward: 500 * 100_000_000, // in coins
 	blkRewardHalflife: 10, // in block height
 	initBlockDiff: 1,
 	initHashTarg: "0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
@@ -44,8 +44,8 @@ const params = {
 	diffRecalcHeight: 20, // in block height
 	minDiffCorrFact: 1 / 4,
 	maxDiffCorrFact: 4,
-	blkMaturity: 8, // number of blocks that has to be mined on top to be considered matured
-	hardCap: 500_000_000_00_000_000, // upper bound to amt of coins in circulation
+	blkMaturity: 8, // number of blocks that has to be mined on top (confirmations) to be considered matured
+	hardCap: 500_000_000 * 100_000_000, // upper bound to amt of coins in circulation
 };
 
 const { sk: bobsk, pk: bobpk, address: bobad } = getKeys(params, "bob");
@@ -149,24 +149,25 @@ test("Multiple Tx per Block", () => {
 });
 
 test("Overspend within Block", () => {
+	const p = { ...params, initBlkReward: 50 };
 	const [blockchain, transactions, genesis] = initGen();
 
-	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
+	const tx1 = candsTx(p, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
 	transactions.push(tx1);
 
-	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
+	const tx2 = candsTx(p, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
 	transactions.push(tx2);
 
-	const tx3 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 11, 0); // overspend
+	const tx3 = candsTx(p, blockchain, genesis, transactions, bobsk, ginad, 11, 0); // overspend
 	transactions.push(tx3);
 
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2, tx3], bobad);
+	const cb1 = createCoinbaseTransaction(p, blockchain, genesis, [tx1, tx2, tx3], bobad);
 	transactions.push(cb1);
 
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2, tx3]));
+	const block1 = evaluate(mineNewBlock(p, blockchain, genesis, [cb1, tx1, tx2, tx3]));
 	addBlockToBlockchain(blockchain, block1);
 
-	expect(() => isBlockchainValid(params, blockchain, block1)).toThrow();
+	expect(() => isBlockchainValid(p, blockchain, block1)).toThrow();
 });
 
 test("confirmations and txblock", () => {
