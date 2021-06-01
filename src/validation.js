@@ -132,7 +132,7 @@ function isBlockchainValid(params, blockchain, headBlock) {
 			throw new Error("CB04: invalid miner address"); // miner address invalid
 
 		const coinbaseAmt = coinbaseTx.outputs[0].amount;
-		const fee = blkOutAmt - blkInAmt;
+		const fee = blkInAmt - blkOutAmt;
 		const blockReward = calculateBlockReward(params, block.height);
 		if (coinbaseAmt > fee + blockReward) throw new Error("CB05: reward larger than allowed"); // coinbase amt larger than allowed
 		// ---- end coinbase tx ----
@@ -227,7 +227,7 @@ function isBlockValidInBlockchain(params, blockchain, block) {
 		throw new Error("CB04: invalid miner address"); // miner address invalid
 
 	const coinbaseAmt = coinbaseTx.outputs[0].amount;
-	const fee = blkOutAmt - blkInAmt;
+	const fee = blkInAmt - blkOutAmt;
 	const blockReward = calculateBlockReward(params, block.height);
 	if (coinbaseAmt > fee + blockReward)
 		throw new Error(`CB05: reward of ${coinbaseAmt} larger than allowed ${fee} + ${blockReward}`); // coinbase amt larger than allowed
