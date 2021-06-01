@@ -99,7 +99,7 @@ function isBlockchainValid(params, blockchain, headBlock) {
 
 			updateUTXOSet(utxoSet, transaction);
 
-			if (txInAmt !== txOutAmt)
+			if (txInAmt < txOutAmt)
 				throw new Error(`TX00: input is ${txInAmt} and output is ${txOutAmt}`);
 
 			// check signature
@@ -195,8 +195,7 @@ function isBlockValidInBlockchain(params, blockchain, block) {
 
 		updateUTXOSet(utxoSet, transaction);
 
-		if (txInAmt !== txOutAmt)
-			throw new Error(`TX00: input is ${txInAmt} and output is ${txOutAmt}`);
+		if (txInAmt < txOutAmt) throw new Error(`TX00: input is ${txInAmt} and output is ${txOutAmt}`);
 
 		// check signature
 		const senderPK = transaction.inputs[0].publicKey;

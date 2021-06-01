@@ -26,6 +26,7 @@ function getPreviousBlock(blockchain, block) {
 
 // get highest and earliest block in the chain
 function getHighestValidBlock(blockchain) {
+	if (!blockchain.length) return null;
 	const maxHeight = blockchain[blockchain.length - 1].height;
 	let earliestBlock = blockchain[blockchain.length - 1];
 	for (let i = blockchain.length - 1; i >= 0; i--) {
