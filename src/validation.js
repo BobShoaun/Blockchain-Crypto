@@ -229,7 +229,8 @@ function isBlockValidInBlockchain(params, blockchain, block) {
 	const coinbaseAmt = coinbaseTx.outputs[0].amount;
 	const fee = blkOutAmt - blkInAmt;
 	const blockReward = calculateBlockReward(params, block.height);
-	if (coinbaseAmt > fee + blockReward) throw new Error("CB05: reward larger than allowed"); // coinbase amt larger than allowed
+	if (coinbaseAmt > fee + blockReward)
+		throw new Error(`CB05: reward of ${coinbaseAmt} larger than allowed ${fee} + ${blockReward}`); // coinbase amt larger than allowed
 	// ---- end coinbase tx ----
 
 	return true;
