@@ -21,7 +21,7 @@ function isCoinbase(transaction) {
 function calculateMempool(blockchain, headBlock, transactions) {
 	const transactionSet = calculateTransactionSet(blockchain, headBlock);
 	return transactions.filter(
-		tx => !transactionSet.some(txSet => txSet.hash === tx.hash) || !isCoinbase(tx)
+		tx => !transactionSet.some(txSet => txSet.hash === tx.hash) && !isCoinbase(tx)
 	);
 }
 
