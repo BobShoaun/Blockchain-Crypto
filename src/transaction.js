@@ -13,9 +13,16 @@ function resetTransactionSets() {
 	transactionSets = {};
 }
 
+// check if tx is coinbase tx without any context, may wrongly return true for invalid tx with no inputs.
+function isCoinbase(transaction) {
+	return transaction.inputs.length === 0 && transaction.outputs.length === 1;
+}
+
 function calculateMempool(blockchain, headBlock, transactions) {
 	const transactionSet = calculateTransactionSet(blockchain, headBlock);
-	return transactions.filter(tx => !transactionSet.some(txSet => txSet.hash === tx.hash));
+	return transactions.filter(
+		tx => !transactionSet.some(txSet => txSet.hash === tx.hash) || !isCoinbase(tx)
+	);
 }
 
 function calculateTransactionSet(blockchain, headBlock) {
