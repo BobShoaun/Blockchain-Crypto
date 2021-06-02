@@ -41,7 +41,7 @@ function isProposedBlockValid(blockchain, prevBlock, transactions) {
 	}
 }
 
-function isMempoolTransactionValid(params, blockchain, headBlock, transaction) {}
+function isMempoolTxValid(params, blockchain, headBlock, transaction) {}
 
 function isBlockchainValid(params, blockchain, headBlock) {
 	let currBlockHash = headBlock.hash;
@@ -289,4 +289,5 @@ module.exports = {
 	isTransactionValid,
 	isTransactionValidInBlockchain,
 	isCoinbaseTxValid,
+	isMempoolTxValid,
 };
