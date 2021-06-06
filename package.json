@@ -1,6 +1,6 @@
 {
 	"name": "blockcrypto",
-	"version": "2.5.0",
+	"version": "2.5.1",
 	"description": "blockchain service",
 	"main": "index.js",
 	"dependencies": {
