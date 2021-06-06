@@ -1,6 +1,6 @@
 function createBlockchain(blocks) {
 	const blockchain = [...blocks];
-	blockchain.sort((a, b) => a.height - b.height);
+	blockchain.sort((a, b) => a.height - b.height || a.timestamp - b.timestamp);
 	return blockchain;
 }
 
