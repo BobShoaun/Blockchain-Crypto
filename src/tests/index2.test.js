@@ -217,10 +217,10 @@ test("confirmations and txblock", () => {
 	const tx4 = candsTx(params, blockchain, block2, transactions, bobsk, tomad, 22, 0);
 	transactions.push(tx4);
 
-	expect(getTxBlock(blockchain, tx1)).toBe(block1);
-	expect(getTxBlock(blockchain, tx3)).toBe(block2);
-	expect(getTxBlock(blockchain, cb2)).toBe(block2);
-	expect(getTxBlock(blockchain, tx4)).toBe(null);
+	expect(getTxBlock(blockchain, block2.hash, tx1)).toBe(block1);
+	expect(getTxBlock(blockchain, block2.hash, tx3)).toBe(block2);
+	expect(getTxBlock(blockchain, block2.hash, cb2)).toBe(block2);
+	expect(getTxBlock(blockchain, block2.hash, tx4)).toBe(null);
 });
 
 test("tx and block validations", () => {

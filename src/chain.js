@@ -4,12 +4,22 @@ function createBlockchain(blocks) {
 	return blockchain;
 }
 
+// blocks are ordered by increasing height and timestamp.
 function addBlockToBlockchain(blockchain, block) {
-	let i = blockchain.length - 1;
-	for (; i >= 0; i--) {
-		if (blockchain[i].height <= block.height) break;
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].height < block.height) {
+			blockchain.splice(i + 1, 0, block);
+			return;
+		}
+		// height is === to block.height
+
+		if (blockchain[i].timestamp <= block.timestamp) {
+			blockchain.splice(i + 1, 0, block);
+			return;
+		}
 	}
-	blockchain.splice(i + 1, 0, block);
+	// insert at the very front
+	blockchain.unshift(block);
 }
 
 function calculateBalance(blockchain, headBlock, address) {
@@ -24,16 +34,17 @@ function getPreviousBlock(blockchain, block) {
 	throw Error("no prev block found in blockchain");
 }
 
-// get highest and earliest block in the chain
-function getHighestValidBlock(blockchain) {
+// get highest and earliest valid block in the chain
+function getHighestValidBlock(params, blockchain) {
 	if (!blockchain.length) return null;
 	const maxHeight = blockchain[blockchain.length - 1].height;
-	let earliestBlock = blockchain[blockchain.length - 1];
-	for (let i = blockchain.length - 1; i >= 0; i--) {
-		if (blockchain[i].height !== maxHeight) break;
-		if (blockchain[i].timestamp < earliestBlock.timestamp) earliestBlock = blockchain[i];
+	for (let height = maxHeight; height >= 0; height--) {
+		const highestBlocks = blockchain.filter(block => block.height === height);
+		for (const block of highestBlocks)
+			if (isBlockchainValid(params, blockchain, block) === RESULT.VALID) return block;
 	}
-	return earliestBlock;
+	// no blocks are valid.. very bad
+	return null;
 }
 
 // returns new blockchain with invalid and unecessasary blocks removed
@@ -51,6 +62,7 @@ function getBlockConfirmations(blockchain, block) {
 	}
 	return confirmations;
 }
+
 module.exports = {
 	createBlockchain,
 	addBlockToBlockchain,
@@ -61,3 +73,5 @@ module.exports = {
 };
 
 const { calculateUTXOSet } = require("./utxo.js");
+const { isBlockchainValid } = require("./validation");
+const { RESULT } = require("./validation-codes");

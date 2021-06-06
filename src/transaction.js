@@ -1,4 +1,4 @@
-const { getPreviousBlock, getHighestValidBlock } = require("./chain");
+const { getPreviousBlock } = require("./chain");
 const { calculateBlockReward } = require("./mine");
 const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
 const { base58ToHex } = require("./key.js");
