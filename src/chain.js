@@ -41,7 +41,7 @@ function getHighestValidBlock(params, blockchain) {
 	for (let height = maxHeight; height >= 0; height--) {
 		const highestBlocks = blockchain.filter(block => block.height === height);
 		for (const block of highestBlocks)
-			if (isBlockchainValid(params, blockchain, block) === RESULT.VALID) return block;
+			if (isBlockchainValid(params, blockchain, block).code === RESULT.VALID) return block;
 	}
 	// no blocks are valid.. very bad
 	return null;
