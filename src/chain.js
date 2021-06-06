@@ -40,16 +40,17 @@ function getHighestValidBlock(blockchain) {
 function pruneBlockchain(blockchain) {}
 
 function getBlockConfirmations(blockchain, block) {
-	const highestValidBlock = getHighestValidBlock(blockchain);
-	let prevBlockHash = highestValidBlock.hash;
-	for (let i = blockchain.length - 1; i >= 0; i--) {
-		if (blockchain[i].hash !== prevBlockHash) continue;
-		if (block.hash === prevBlockHash) return highestValidBlock.height - block.height + 1;
-		prevBlockHash = blockchain[i].previousHash;
+	let confirmations = 0;
+	let currHash = block.hash;
+	for (const blk of blockchain) {
+		if (blk.hash === currHash) confirmations++;
+		if (blk.previousHash === currHash) {
+			currHash = blk.hash;
+			confirmations++;
+		}
 	}
-	return 0; // not confirmed yet.
+	return confirmations;
 }
-
 module.exports = {
 	createBlockchain,
 	addBlockToBlockchain,

@@ -154,19 +154,19 @@ function createCoinbaseTransaction(params, blockchain, headBlock, transactions, 
 	return coinbaseTransaction;
 }
 
-function getTxBlock(blockchain, transaction) {
-	const highestValid = getHighestValidBlock(blockchain);
-	let prevBlockHash = highestValid.hash;
+function getTxBlock(blockchain, headBlockHash, transaction) {
+	let prevBlockHash = headBlockHash;
 	for (let i = blockchain.length - 1; i >= 0; i--) {
 		if (blockchain[i].hash !== prevBlockHash) continue;
 		if (blockchain[i].transactions.some(tx => tx.hash === transaction.hash)) return blockchain[i];
 		prevBlockHash = blockchain[i].previousHash;
 	}
-	return null; // not in block yet.
+	// tx does not exist in chain.
+	return null;
 }
 
-function getAddressTxs(blockchain, address) {
-	const transactions = calculateTransactionSet(blockchain, getHighestValidBlock(blockchain));
+function getAddressTxs(blockchain, headBlock, address) {
+	const transactions = calculateTransactionSet(blockchain, headBlock);
 	const receivedTxs = [];
 	const sentTxs = [];
 	for (const transaction of transactions) {
@@ -174,9 +174,17 @@ function getAddressTxs(blockchain, address) {
 			receivedTxs.push(transaction);
 	}
 	for (const transaction of transactions) {
-		if (transaction.inputs.some(input => receivedTxs.some(tx => tx.hash === input.txHash)))
+		if (
+			transaction.inputs.some(input =>
+				receivedTxs.some(
+					tx => input.txHash === tx.hash && tx.outputs[input.outIndex].address === address
+				)
+			)
+		)
 			sentTxs.push(transaction);
 	}
+	// really doesnt make sense to split into received and sent because they are not mutually exclusive..
+	// but for ui sake its good, maybe return all txs too.
 	return [receivedTxs, sentTxs];
 }
 
