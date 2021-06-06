@@ -9,7 +9,7 @@ function mineGenesisBlock(params, transactions) {
 		transactions,
 		timestamp: Date.now(),
 		version: params.version,
-		difficulty: params.initBlockDiff,
+		difficulty: params.initBlkDiff,
 		nonce: 0,
 	};
 	return evaluate(mineBlock(params, block));
@@ -63,7 +63,7 @@ function calculateBlockReward(params, height) {
 
 // get difficulty of current block.
 function calculateBlockDifficulty(params, blockchain, block) {
-	if (block.height === 0) return params.initBlockDiff; // genesis
+	if (block.height === 0) return params.initBlkDiff; // genesis
 	const prevBlock = getPreviousBlock(blockchain, block);
 	if (block.height % params.diffRecalcHeight !== 0) return prevBlock.difficulty;
 	const prevRecalcBlock = getPreviousRecalcBlock(params, blockchain, block); // prev block diffRecalcHeight away

@@ -31,7 +31,7 @@ const params = {
 	checksumLen: 4,
 	initBlkReward: 50, // in coins
 	blkRewardHalflife: 10, // in block height
-	initBlockDiff: 1,
+	initBlkDiff: 1,
 	initHashTarg: "0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 	targBlkTime: 5 * 60, // 5 minutes in seconds
 	diffRecalcHeight: 20, // in block height
