@@ -7,5 +7,6 @@ module.exports = {
 	...require("./src/transaction"),
 	...require("./src/utxo"),
 	...require("./src/validation"),
+	...require("./src/validation-codes"),
 	...require("./src/helper"),
 };
