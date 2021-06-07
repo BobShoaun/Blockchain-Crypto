@@ -131,6 +131,7 @@ function createCoinbaseTransaction(params, blockchain, headBlock, transactions, 
 			const utxo = utxoSet.find(
 				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
 			);
+			// TODO: will error here if utxo does not exist when trying to mine block.
 			totalFee += utxo.amount;
 		}
 		for (const output of transaction.outputs) totalFee -= output.amount;

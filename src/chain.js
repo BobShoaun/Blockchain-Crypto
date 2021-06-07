@@ -7,16 +7,15 @@ function createBlockchain(blocks) {
 // blocks are ordered by increasing height and timestamp.
 function addBlockToBlockchain(blockchain, block) {
 	for (let i = blockchain.length - 1; i >= 0; i--) {
-		if (blockchain[i].height < block.height) {
+		if (block.height < blockchain[i].height) continue;
+		if (block.height > blockchain[i].height) {
 			blockchain.splice(i + 1, 0, block);
 			return;
 		}
-		// height is === to block.height
 
-		if (blockchain[i].timestamp <= block.timestamp) {
-			blockchain.splice(i + 1, 0, block);
-			return;
-		}
+		if (block.timestamp < blockchain[i].timestamp) continue;
+		blockchain.splice(i + 1, 0, block);
+		return;
 	}
 	// insert at the very front
 	blockchain.unshift(block);
