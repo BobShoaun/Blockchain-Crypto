@@ -25,21 +25,21 @@ function calculateMempoolUTXOSet(blockchain, headBlock, transactions) {
 	return utxoSet;
 }
 
-function findUTXOs(blockchain, headBlock, transactions, address, amount) {
-	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
+// function findUTXOs(blockchain, headBlock, transactions, address, amount) {
+// 	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
 
-	// pick utxos from front to back.
-	let totalAmount = 0;
-	const utxos = [];
-	for (const utxo of utxoSet) {
-		if (totalAmount >= amount) break;
-		if (utxo.address !== address) continue;
-		totalAmount += utxo.amount;
-		utxos.push(utxo);
-	}
+// 	// pick utxos from front to back.
+// 	let totalAmount = 0;
+// 	const utxos = [];
+// 	for (const utxo of utxoSet) {
+// 		if (totalAmount >= amount) break;
+// 		if (utxo.address !== address) continue;
+// 		totalAmount += utxo.amount;
+// 		utxos.push(utxo);
+// 	}
 
-	return utxos;
-}
+// 	return utxos;
+// }
 
 function updateUTXOSet(utxoSet, transaction) {
 	for (const input of transaction.inputs) {
@@ -62,12 +62,33 @@ function updateUTXOSet(utxoSet, transaction) {
 	);
 }
 
+function createInput(txHash, outIndex, publicKey) {
+	return {
+		txHash,
+		outIndex,
+		publicKey,
+		signature: null,
+	};
+}
+
+function createOutput(address, amount) {
+	return { address, amount };
+}
+
+function findTXO(input, transactions) {
+	const transaction = transactions.find(tx => tx.hash === input.txHash);
+	const output = transaction.outputs[input.outIndex];
+	return output;
+}
+
 module.exports = {
 	resetUtxoSets,
 	calculateUTXOSet,
 	calculateMempoolUTXOSet,
 	updateUTXOSet,
-	findUTXOs,
+	createInput,
+	createOutput,
+	findTXO,
 };
 
 const { calculateMempool } = require("./transaction");

@@ -1,40 +1,43 @@
 const {
 	mineGenesisBlock,
-	isBlockValid,
-	mineNewBlock,
-	createAndSignTransaction,
 	isTransactionValid,
 	createBlockchain,
 	isBlockchainValid,
-	calculateBalance,
-	addBlockToBlockchain,
+	addBlock,
 	calculateUTXOSet,
 	getHighestValidBlock,
-	generateKeyPair,
-	getKeyPair,
 	calculateMempool,
-	isTransactionValidInBlockchain,
-	generateKeys,
 	getKeys,
 	isAddressValid,
-	findUTXOs,
-	createCoinbaseTransaction,
 	resetTransactionSets,
 	resetUtxoSets,
 	getTxBlock,
 	getBlockConfirmations,
+	calculateHashTarget,
+	mineBlock,
+	evaluate,
+	createBlock,
+	isCoinbaseTxValid,
+	isBlockValidInBlockchain,
+	createTransaction,
+	createInput,
+	createOutput,
+	signTransaction,
+	calculateTransactionHash,
+	calculateMempoolUTXOSet,
+	updateUTXOSet,
+	calculateBlockReward,
+	findTXO,
+	getTransactionFees,
+	RESULT,
 } = require("../../index");
-
-const { evaluate } = require("../helper");
-const { isCoinbaseTxValid, isBlockValidInBlockchain } = require("../validation");
-const { RESULT } = require("../validation-codes");
 
 // consensus parameters
 const params = {
 	name: "Bobcoin",
 	symbol: "XBC",
 	coin: 100_000_000, // amounts are stored as the smallest unit, this is how many of the smallest unit that amounts to 1 coin.
-	version: 1,
+	version: "1.0.0",
 	addressPre: "06",
 	checksumLen: 4,
 	initBlkReward: 500 * 100_000_000, // in coins
@@ -65,10 +68,55 @@ const { sk: bobsk, pk: bobpk, address: bobad } = getKeys(params, "bob");
 const { sk: tomsk, pk: tompk, address: tomad } = getKeys(params, "tom");
 const { sk: ginsk, pk: ginpk, address: ginad } = getKeys(params, "gina");
 
-function candsTx(p, bc, hb, txs, ssk, ad, amt, fee) {
-	const { sk, pk, address } = getKeys(p, ssk);
-	const utxos = findUTXOs(bc, hb, txs, address, amt + fee);
-	return createAndSignTransaction(p, utxos, sk, pk, address, ad, amt, fee);
+function candsTx(params, blockchain, headBlock, transactions, senderSK, recipientAdd, amount, fee) {
+	const { sk, pk, address } = getKeys(params, senderSK);
+
+	// get utxos from mempool
+	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
+
+	// pick utxos from front to back.
+	let inputAmount = 0;
+	const inputs = [];
+	for (const utxo of utxoSet) {
+		if (inputAmount >= amount) break;
+		if (utxo.address !== address) continue;
+		inputAmount += utxo.amount;
+		const input = createInput(utxo.txHash, utxo.outIndex, pk);
+		inputs.push(input);
+	}
+
+	// if (inputAmount < amount) throw Error("Not enough UTXO to spend");
+
+	const outputs = [];
+	const payment = createOutput(recipientAdd, amount);
+	outputs.push(payment);
+
+	const changeAmount = inputAmount - amount - fee;
+	if (changeAmount > 0) {
+		const change = createOutput(address, changeAmount);
+		outputs.push(change);
+	}
+
+	const transaction = createTransaction(params, inputs, outputs);
+	const signature = signTransaction(transaction, sk);
+	transaction.inputs.forEach(input => (input.signature = signature));
+
+	transaction.hash = calculateTransactionHash(transaction); // txHash used for referencing
+	return transaction;
+}
+
+function createCoinbaseTransaction(params, transactions, headBlock, txsToMine, miner) {
+	const fees = txsToMine.reduce((total, tx) => total + getTransactionFees(transactions, tx), 0);
+	const output = createOutput(miner, calculateBlockReward(params, headBlock.height + 1) + fees);
+	const coinbase = createTransaction(params, [], [output]);
+	coinbase.hash = calculateTransactionHash(coinbase);
+	return coinbase;
+}
+
+function mineNewBlock(params, blockchain, headBlock, transactions) {
+	const block = createBlock(params, blockchain, headBlock, transactions);
+	const target = calculateHashTarget(params, block);
+	return evaluate(mineBlock(block, target));
 }
 
 function initGen(params) {
@@ -76,10 +124,12 @@ function initGen(params) {
 	resetUtxoSets();
 	const transactions = [];
 	const blockchain = createBlockchain([]);
-	const cb = createCoinbaseTransaction(params, blockchain, null, [], bobad);
-	transactions.push(cb);
-	const genesis = mineGenesisBlock(params, [cb]);
-	addBlockToBlockchain(blockchain, genesis);
+	const output = createOutput(bobad, params.initBlkReward);
+	const coinbase = createTransaction(params, [], [output]);
+	coinbase.hash = calculateTransactionHash(coinbase);
+	const genesis = mineGenesisBlock(params, [coinbase]);
+	transactions.push(coinbase);
+	addBlock(blockchain, genesis);
 	return [blockchain, transactions, genesis];
 }
 
@@ -107,10 +157,10 @@ test("Simplest Case", () => {
 	const [blockchain, transactions, genesis] = initGen(params);
 	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
 	transactions.push(tx1);
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1], bobad);
+	const cb1 = createCoinbaseTransaction(params, transactions, genesis, [tx1], bobad);
 	transactions.push(cb1);
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1]);
+	addBlock(blockchain, block1);
 	expect(isBlockchainValid(params, blockchain, block1).code).toBe(RESULT.VALID);
 });
 
@@ -119,10 +169,10 @@ test("Mempool Simplest Case", () => {
 	const tx1 = candsTx(params, blockchain, genesis, transactions, bobsk, tomad, 20, 0);
 	transactions.push(tx1);
 	const mp1 = calculateMempool(blockchain, genesis, transactions);
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, mp1, bobad);
+	const cb1 = createCoinbaseTransaction(params, transactions, genesis, mp1, bobad);
 	transactions.push(cb1);
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, ...mp1]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, ...mp1]);
+	addBlock(blockchain, block1);
 	expect(isBlockchainValid(params, blockchain, block1).code).toBe(RESULT.VALID);
 });
 
@@ -135,11 +185,11 @@ test("Multiple Tx per Block", () => {
 	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 21, 0);
 	transactions.push(tx2);
 
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2], tomad);
+	const cb1 = createCoinbaseTransaction(params, transactions, genesis, [tx1, tx2], tomad);
 	transactions.push(cb1);
 
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]);
+	addBlock(blockchain, block1);
 
 	expect(isBlockchainValid(params, blockchain, block1).code).toBe(RESULT.VALID);
 
@@ -152,11 +202,11 @@ test("Multiple Tx per Block", () => {
 	const tx5 = candsTx(params, blockchain, block1, transactions, ginsk, bobad, 20, 0);
 	transactions.push(tx5);
 
-	const cb2 = createCoinbaseTransaction(params, blockchain, block1, [tx3, tx4, tx5], bobad);
+	const cb2 = createCoinbaseTransaction(params, transactions, block1, [tx3, tx4, tx5], bobad);
 	transactions.push(cb2);
 
-	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [cb2, tx3, tx4, tx5]));
-	addBlockToBlockchain(blockchain, block2);
+	const block2 = mineNewBlock(params, blockchain, block1, [cb2, tx3, tx4, tx5]);
+	addBlock(blockchain, block2);
 	// console.log(JSON.stringify(blockchain, null, 2));
 	expect(isBlockchainValid(params, blockchain, block2).code).toBe(RESULT.VALID);
 });
@@ -174,11 +224,11 @@ test("Overspend within Block", () => {
 	const tx3 = candsTx(p, blockchain, genesis, transactions, bobsk, ginad, 11, 0); // overspend
 	transactions.push(tx3);
 
-	const cb1 = createCoinbaseTransaction(p, blockchain, genesis, [tx1, tx2, tx3], bobad);
+	const cb1 = createCoinbaseTransaction(p, transactions, genesis, [tx1, tx2, tx3], bobad);
 	transactions.push(cb1);
 
-	const block1 = evaluate(mineNewBlock(p, blockchain, genesis, [cb1, tx1, tx2, tx3]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(p, blockchain, genesis, [cb1, tx1, tx2, tx3]);
+	addBlock(blockchain, block1);
 
 	expect(isBlockchainValid(p, blockchain, block1).code).toBe(RESULT.TX06);
 });
@@ -192,11 +242,11 @@ test("confirmations and txblock", () => {
 	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
 	transactions.push(tx2);
 
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2], ginad);
+	const cb1 = createCoinbaseTransaction(params, transactions, genesis, [tx1, tx2], ginad);
 	transactions.push(cb1);
 
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]);
+	addBlock(blockchain, block1);
 
 	expect(getBlockConfirmations(blockchain, block1)).toBe(1);
 	expect(getBlockConfirmations(blockchain, genesis)).toBe(2);
@@ -204,11 +254,11 @@ test("confirmations and txblock", () => {
 	const tx3 = candsTx(params, blockchain, block1, transactions, ginsk, tomad, 2, 0);
 	transactions.push(tx3);
 
-	const cb2 = createCoinbaseTransaction(params, blockchain, block1, [tx3], bobad);
+	const cb2 = createCoinbaseTransaction(params, transactions, block1, [tx3], bobad);
 	transactions.push(cb2);
 
-	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [cb2, tx3]));
-	addBlockToBlockchain(blockchain, block2);
+	const block2 = mineNewBlock(params, blockchain, block1, [cb2, tx3]);
+	addBlock(blockchain, block2);
 
 	expect(getBlockConfirmations(blockchain, genesis)).toBe(3);
 	expect(getBlockConfirmations(blockchain, block1)).toBe(2);
@@ -232,11 +282,11 @@ test("tx and block validations", () => {
 	const tx2 = candsTx(params, blockchain, genesis, transactions, bobsk, ginad, 20, 0);
 	transactions.push(tx2);
 
-	const cb1 = createCoinbaseTransaction(params, blockchain, genesis, [tx1, tx2], ginad);
+	const cb1 = createCoinbaseTransaction(params, transactions, genesis, [tx1, tx2], ginad);
 	transactions.push(cb1);
 
-	const block1 = evaluate(mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]));
-	addBlockToBlockchain(blockchain, block1);
+	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]);
+	addBlock(blockchain, block1);
 
 	expect(isTransactionValid(params, tx1).code).toBe(RESULT.VALID);
 	expect(isTransactionValid(params, tx2).code).toBe(RESULT.VALID);
@@ -247,11 +297,11 @@ test("tx and block validations", () => {
 	const tx3 = candsTx(params, blockchain, block1, transactions, ginsk, tomad, 2, 0);
 	transactions.push(tx3);
 
-	const cb2 = createCoinbaseTransaction(params, blockchain, block1, [tx3], bobad);
+	const cb2 = createCoinbaseTransaction(params, transactions, block1, [tx3], bobad);
 	transactions.push(cb2);
 
-	const block2 = evaluate(mineNewBlock(params, blockchain, block1, [cb2, tx3]));
-	addBlockToBlockchain(blockchain, block2);
+	const block2 = mineNewBlock(params, blockchain, block1, [cb2, tx3]);
+	addBlock(blockchain, block2);
 
 	expect(isTransactionValid(params, tx3).code).toBe(RESULT.VALID);
 	expect(isCoinbaseTxValid(params, cb2).code).toBe(RESULT.VALID);

@@ -1,6 +1,6 @@
 const { getPreviousBlock } = require("./chain");
 const { calculateBlockReward } = require("./mine");
-const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
+const { calculateUTXOSet, updateUTXOSet, findTXO } = require("./utxo");
 const { base58ToHex } = require("./key.js");
 
 const SHA256 = require("crypto-js/sha256");
@@ -36,55 +36,13 @@ function calculateTransactionSet(blockchain, headBlock) {
 	return (transactionSets[headBlock.hash] = transactionSet);
 }
 
-// amount and fee all in smallest denominations
-function createAndSignTransaction(
-	params,
-	utxos,
-	senderSK,
-	senderPK,
-	senderAdd,
-	recipientAdd,
-	amount,
-	fee
-) {
-	const inputs = [];
-	let totalInputAmt = 0;
-
-	for (const utxo of utxos) {
-		inputs.push({
-			txHash: utxo.txHash,
-			outIndex: utxo.outIndex,
-			publicKey: senderPK,
-			signature: null,
-		});
-		totalInputAmt += utxo.amount;
-	}
-
-	const payment = {
-		address: recipientAdd,
-		amount,
-	};
-	const outputs = [payment];
-
-	const changeAmount = totalInputAmt - amount - fee;
-	if (changeAmount > 0) {
-		const change = {
-			address: senderAdd,
-			amount: changeAmount,
-		};
-		outputs.push(change);
-	}
-
-	const transaction = {
+function createTransaction(params, inputs, outputs) {
+	return {
 		timestamp: Date.now(),
 		version: params.version,
 		inputs,
 		outputs,
 	};
-
-	signTransaction(transaction, senderSK);
-	transaction.hash = calculateTransactionHash(transaction); // txHash used for referencing
-	return transaction;
 }
 
 function calculateTransactionHash(transaction) {
@@ -109,51 +67,49 @@ function calculateTransactionHash(transaction) {
 }
 
 function calculateTransactionPreImage(transaction) {
-	const txCopy = JSON.parse(JSON.stringify(transaction));
+	const txCopy = JSON.parse(JSON.stringify(transaction)); // deep copy
 	for (const input of txCopy.inputs) input.signature = input.publicKey; // placeholder for generating pre-image
 	return calculateTransactionHash(txCopy);
 }
 
-// for now theres only support for signing txs for one sender.
-function signTransaction(transaction, senderSK) {
+function signTransaction(transaction, privateKey) {
 	const preImage = calculateTransactionPreImage(transaction); // preimage hash
-	const keyPair = ec.keyFromPrivate(base58ToHex(senderSK), "hex");
-	const signature = keyPair.sign(preImage, "hex").toDER("hex");
-	for (const input of transaction.inputs) input.signature = signature;
+	const keyPair = ec.keyFromPrivate(base58ToHex(privateKey), "hex");
+	return keyPair.sign(preImage, "hex").toDER("hex");
 }
 
-function createCoinbaseTransaction(params, blockchain, headBlock, transactions, miner) {
-	const utxoSet = headBlock ? [...calculateUTXOSet(blockchain, headBlock)] : [];
+// function createCoinbaseTransaction(params, blockchain, headBlock, txsToMine, miner) {
+// 	const utxoSet = headBlock ? [...calculateUTXOSet(blockchain, headBlock)] : [];
 
-	let totalFee = 0;
-	for (const transaction of transactions) {
-		for (const input of transaction.inputs) {
-			const utxo = utxoSet.find(
-				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
-			);
-			// TODO: will error here if utxo does not exist when trying to mine block.
-			totalFee += utxo.amount;
-		}
-		for (const output of transaction.outputs) totalFee -= output.amount;
-		updateUTXOSet(utxoSet, transaction);
-	}
+// 	let totalFee = 0;
+// 	for (const transaction of txsToMine) {
+// 		for (const input of transaction.inputs) {
+// 			const utxo = utxoSet.find(
+// 				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
+// 			);
+// 			// TODO: will error here if utxo does not exist when trying to mine block.
+// 			totalFee += utxo.amount;
+// 		}
+// 		for (const output of transaction.outputs) totalFee -= output.amount;
+// 		updateUTXOSet(utxoSet, transaction);
+// 	}
 
-	const output = {
-		address: miner,
-		amount: headBlock
-			? calculateBlockReward(params, headBlock.height + 1) + totalFee
-			: params.initBlkReward + totalFee,
-	};
+// 	const output = {
+// 		address: miner,
+// 		amount: headBlock
+// 			? calculateBlockReward(params, headBlock.height + 1) + totalFee
+// 			: params.initBlkReward + totalFee,
+// 	};
 
-	const coinbaseTransaction = {
-		timestamp: Date.now(),
-		version: params.version,
-		inputs: [],
-		outputs: [output],
-	};
-	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
-	return coinbaseTransaction;
-}
+// 	const coinbaseTransaction = {
+// 		timestamp: Date.now(),
+// 		version: params.version,
+// 		inputs: [],
+// 		outputs: [output],
+// 	};
+// 	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
+// 	return coinbaseTransaction;
+// }
 
 function getTxBlock(blockchain, headBlockHash, transaction) {
 	let prevBlockHash = headBlockHash;
@@ -189,14 +145,25 @@ function getAddressTxs(blockchain, headBlock, address) {
 	return [receivedTxs, sentTxs];
 }
 
+function getTransactionFees(transactions, transaction) {
+	let fees = 0;
+	for (const input of transaction.inputs) {
+		const output = findTXO(input, transactions);
+		fees += output.amount;
+	}
+	for (const output of transaction.outputs) fees -= output.amount;
+	return fees;
+}
+
 module.exports = {
 	resetTransactionSets,
 	calculateMempool,
 	calculateTransactionHash,
-	createAndSignTransaction,
 	calculateTransactionPreImage,
 	calculateTransactionSet,
-	createCoinbaseTransaction,
+	signTransaction,
 	getTxBlock,
 	getAddressTxs,
+	createTransaction,
+	getTransactionFees,
 };

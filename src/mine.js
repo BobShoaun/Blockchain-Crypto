@@ -1,8 +1,9 @@
 const SHA256 = require("crypto-js/sha256");
 const { getPreviousBlock } = require("./chain.js");
-const { bigIntToHex64, hexToBigInt, evaluate } = require("./helper");
+const { hexToBigInt, evaluate } = require("./helper");
 
 function mineGenesisBlock(params, transactions) {
+	const txHashes = transactions.map(tx => tx.hash);
 	const block = {
 		height: 0,
 		previousHash: null,
@@ -10,13 +11,14 @@ function mineGenesisBlock(params, transactions) {
 		timestamp: Date.now(),
 		version: params.version,
 		difficulty: params.initBlkDiff,
-		merkleRoot: calculateMerkleRoot(transactions.map(tx => tx.hash)),
+		merkleRoot: calculateMerkleRoot(txHashes),
 		nonce: 0,
 	};
-	return evaluate(mineBlock(params, block));
+	const target = calculateHashTarget(params, block);
+	return evaluate(mineBlock(block, target));
 }
 
-function mineNewBlock(params, blockchain, headBlock, transactions, targetCallback) {
+function createBlock(params, blockchain, headBlock, transactions) {
 	const block = {
 		height: headBlock.height + 1,
 		previousHash: headBlock.hash,
@@ -27,20 +29,16 @@ function mineNewBlock(params, blockchain, headBlock, transactions, targetCallbac
 		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
-	return mineBlock(params, block, targetCallback);
+	return block;
 }
 
-function* mineBlock(params, block, targetCallback) {
-	const hashTarget = calculateHashTarget(params, block);
-	targetCallback?.(bigIntToHex64(hashTarget));
-
+function* mineBlock(block, target) {
 	while (true) {
 		block.hash = calculateBlockHash(block);
 		const currentHash = BigInt("0x" + block.hash);
-		if (currentHash <= hashTarget)
+		if (currentHash <= target)
 			// mining successful
 			return yield block;
-
 		block.nonce++;
 		yield block;
 	}
@@ -124,11 +122,12 @@ function getPreviousRecalcBlock(params, blockchain, block) {
 
 module.exports = {
 	mineGenesisBlock,
-	mineNewBlock,
+	createBlock,
 	calculateBlockHash,
 	getPreviousRecalcBlock,
 	calculateBlockReward,
 	calculateBlockDifficulty,
 	calculateHashTarget,
 	calculateMerkleRoot,
+	mineBlock,
 };

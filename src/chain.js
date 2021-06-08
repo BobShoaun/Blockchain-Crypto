@@ -5,7 +5,7 @@ function createBlockchain(blocks) {
 }
 
 // blocks are ordered by increasing height and timestamp.
-function addBlockToBlockchain(blockchain, block) {
+function addBlock(blockchain, block) {
 	for (let i = blockchain.length - 1; i >= 0; i--) {
 		if (block.height < blockchain[i].height) continue;
 		if (block.height > blockchain[i].height) {
@@ -47,7 +47,7 @@ function getHighestValidBlock(params, blockchain) {
 }
 
 // returns new blockchain with invalid and unecessasary blocks removed
-function pruneBlockchain(blockchain) {}
+function pruneBlockchain(blockchain, headBlock, depth) {}
 
 function getBlockConfirmations(blockchain, block) {
 	let confirmations = 0;
@@ -64,7 +64,7 @@ function getBlockConfirmations(blockchain, block) {
 
 module.exports = {
 	createBlockchain,
-	addBlockToBlockchain,
+	addBlock,
 	calculateBalance,
 	getPreviousBlock,
 	getHighestValidBlock,
