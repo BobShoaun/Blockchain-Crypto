@@ -10,6 +10,7 @@ function mineGenesisBlock(params, transactions) {
 		timestamp: Date.now(),
 		version: params.version,
 		difficulty: params.initBlkDiff,
+		merkleRoot: calculateMerkleRoot(transactions.map(tx => tx.hash)),
 		nonce: 0,
 	};
 	return evaluate(mineBlock(params, block));
@@ -22,6 +23,7 @@ function mineNewBlock(params, blockchain, headBlock, transactions, targetCallbac
 		transactions,
 		timestamp: Date.now(),
 		version: params.version,
+		merkleRoot: calculateMerkleRoot(transactions.map(tx => tx.hash)),
 		nonce: 0,
 	};
 	block.difficulty = calculateBlockDifficulty(params, blockchain, block);
@@ -48,12 +50,33 @@ function calculateBlockHash(block) {
 	return SHA256(
 		block.height +
 			block.previousHash +
-			JSON.stringify(block.transactions.map(tx => tx.hash)) +
+			block.merkleRoot +
 			block.timestamp +
 			block.version +
 			block.difficulty +
 			block.nonce
 	).toString();
+}
+
+// function mutates array
+function calculateMerkleRoot(hashes) {
+	if (!hashes) throw Error("invalid hashes array when calculating merkle root");
+
+	if (hashes.length % 2 === 1)
+		// odd number of hashes
+		hashes.push(hashes[hashes.length - 1]);
+
+	const parentHashes = [];
+	for (let i = 0; i < hashes.length; i += 2) {
+		const left = hashes[i];
+		const right = hashes[i + 1];
+		const hash = SHA256(left + right).toString();
+		parentHashes.push(hash);
+	}
+
+	if (parentHashes.length === 1) return parentHashes[0];
+
+	return calculateMerkleRoot(parentHashes);
 }
 
 function calculateBlockReward(params, height) {
@@ -107,4 +130,5 @@ module.exports = {
 	calculateBlockReward,
 	calculateBlockDifficulty,
 	calculateHashTarget,
+	calculateMerkleRoot,
 };
