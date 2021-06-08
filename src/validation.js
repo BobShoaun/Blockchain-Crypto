@@ -10,6 +10,7 @@ const {
 	calculateBlockReward,
 	calculateHashTarget,
 	calculateBlockDifficulty,
+	calculateMerkleRoot,
 } = require("./mine.js");
 const { getPreviousBlock } = require("./chain");
 const { base58ToHex, getAddressFromPKHex } = require("./key.js");
@@ -55,9 +56,11 @@ function isBlockchainValid(params, blockchain, headBlock) {
 		if (block.height < 0) return result(RESULT.BK00); // height invalid
 		if (!block.version || !block.timestamp) return result(RESULT.BK01);
 		if (!block.transactions.length) return result(RESULT.BK02); // must have at least 1 tx (coinbase)
-		if (block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // block hash invalid
+		if (block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // invalid PoW
 		if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
 			return result(RESULT.BK04);
+		if (block.merkleRoot !== calculateMerkleRoot(block.transactions.map(tx => tx.hash)))
+			return result(RESULT.BK06);
 
 		const hashTarget = calculateHashTarget(params, block);
 		const blockHash = hexToBigInt(block.hash);
@@ -149,6 +152,8 @@ function isBlockValidInBlockchain(params, blockchain, block) {
 	if (block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // block hash invalid
 	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
 		return result(RESULT.BK04);
+	if (block.merkleRoot !== calculateMerkleRoot(block.transactions.map(tx => tx.hash)))
+		return result(RESULT.BK06);
 
 	const hashTarget = calculateHashTarget(params, block);
 	const blockHash = hexToBigInt(block.hash);

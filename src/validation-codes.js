@@ -5,6 +5,7 @@ const RESULT = {
 	BK03: 3,
 	BK04: 4,
 	BK05: 5,
+	BK06: 25,
 	TX00: 6,
 	TX01: 7,
 	TX02: 8,
@@ -40,6 +41,8 @@ const result = (code, args) => {
 			return { code, msg: "invalid difficulty" };
 		case RESULT.BK05:
 			return { code, msg: `hash not within target of ${args[0]}` };
+		case RESULT.BK06:
+			return { code, msg: "invalid merkle root" };
 		case RESULT.TX00:
 			return { code, msg: "invalid inputs or outputs lengths" };
 		case RESULT.TX01:
