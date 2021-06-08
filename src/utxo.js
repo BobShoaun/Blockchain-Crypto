@@ -25,22 +25,6 @@ function calculateMempoolUTXOSet(blockchain, headBlock, transactions) {
 	return utxoSet;
 }
 
-// function findUTXOs(blockchain, headBlock, transactions, address, amount) {
-// 	const utxoSet = calculateMempoolUTXOSet(blockchain, headBlock, transactions);
-
-// 	// pick utxos from front to back.
-// 	let totalAmount = 0;
-// 	const utxos = [];
-// 	for (const utxo of utxoSet) {
-// 		if (totalAmount >= amount) break;
-// 		if (utxo.address !== address) continue;
-// 		totalAmount += utxo.amount;
-// 		utxos.push(utxo);
-// 	}
-
-// 	return utxos;
-// }
-
 function updateUTXOSet(utxoSet, transaction) {
 	for (const input of transaction.inputs) {
 		// referencing same tx with same output

@@ -1,7 +1,7 @@
 {
 	"name": "blockcrypto",
 	"version": "2.6.0",
-	"description": "blockchain service",
+	"description": "Blockchain framework for making your own cryptocurrency in Node.js",
 	"main": "index.js",
 	"dependencies": {
 		"bigint-conversion": "^2.1.12",
