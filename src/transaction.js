@@ -78,39 +78,6 @@ function signTransaction(transaction, privateKey) {
 	return keyPair.sign(preImage, "hex").toDER("hex");
 }
 
-// function createCoinbaseTransaction(params, blockchain, headBlock, txsToMine, miner) {
-// 	const utxoSet = headBlock ? [...calculateUTXOSet(blockchain, headBlock)] : [];
-
-// 	let totalFee = 0;
-// 	for (const transaction of txsToMine) {
-// 		for (const input of transaction.inputs) {
-// 			const utxo = utxoSet.find(
-// 				utxo => utxo.txHash === input.txHash && utxo.outIndex === input.outIndex
-// 			);
-// 			// TODO: will error here if utxo does not exist when trying to mine block.
-// 			totalFee += utxo.amount;
-// 		}
-// 		for (const output of transaction.outputs) totalFee -= output.amount;
-// 		updateUTXOSet(utxoSet, transaction);
-// 	}
-
-// 	const output = {
-// 		address: miner,
-// 		amount: headBlock
-// 			? calculateBlockReward(params, headBlock.height + 1) + totalFee
-// 			: params.initBlkReward + totalFee,
-// 	};
-
-// 	const coinbaseTransaction = {
-// 		timestamp: Date.now(),
-// 		version: params.version,
-// 		inputs: [],
-// 		outputs: [output],
-// 	};
-// 	coinbaseTransaction.hash = calculateTransactionHash(coinbaseTransaction);
-// 	return coinbaseTransaction;
-// }
-
 function getTxBlock(blockchain, headBlockHash, transaction) {
 	let prevBlockHash = headBlockHash;
 	for (let i = blockchain.length - 1; i >= 0; i--) {
@@ -148,8 +115,8 @@ function getAddressTxs(blockchain, headBlock, address) {
 function getTransactionFees(transactions, transaction) {
 	let fees = 0;
 	for (const input of transaction.inputs) {
-		const output = findTXO(input, transactions);
-		fees += output.amount;
+		const TXO = findTXO(input, transactions);
+		fees += TXO.amount;
 	}
 	for (const output of transaction.outputs) fees -= output.amount;
 	return fees;

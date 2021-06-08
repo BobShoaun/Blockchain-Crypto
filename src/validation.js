@@ -1,10 +1,6 @@
-const {
-	calculateTransactionSet,
-	calculateTransactionHash,
-	calculateTransactionPreImage,
-} = require("./transaction");
+const { calculateTransactionHash, calculateTransactionPreImage } = require("./transaction");
 
-const { calculateUTXOSet, updateUTXOSet } = require("./utxo");
+const { calculateUTXOSet, updateUTXOSet, findTXO } = require("./utxo");
 const {
 	calculateBlockHash,
 	calculateBlockReward,
@@ -101,13 +97,10 @@ function isBlockchainValid(params, blockchain, headBlock) {
 			if (txInAmt < txOutAmt) return result(RESULT.TX06, [txInAmt, txOutAmt]);
 
 			// check signature
-			const senderPK = transaction.inputs[0].publicKey;
 			const preImage = calculateTransactionPreImage(transaction);
-
 			for (const input of transaction.inputs) {
-				if (input.publicKey !== senderPK) return result(RESULT.TX07); // only one sender allowed (for now)
 				try {
-					const key = ec.keyFromPublic(senderPK, "hex");
+					const key = ec.keyFromPublic(input.publicKey, "hex");
 					if (!key.verify(preImage, input.signature)) return result(RESULT.TX08); // signature not valid
 				} catch {
 					return result(RESULT.TX08);
@@ -193,14 +186,10 @@ function isBlockValidInBlockchain(params, blockchain, block) {
 		if (txInAmt < txOutAmt) return result(RESULT.TX06, [txInAmt, txOutAmt]);
 
 		// check signature
-		const senderPK = transaction.inputs[0].publicKey;
 		const preImage = calculateTransactionPreImage(transaction);
-
 		for (const input of transaction.inputs) {
-			if (input.publicKey !== senderPK) return result(RESULT.TX07); // only one sender allowed (for now)
-
 			try {
-				const key = ec.keyFromPublic(senderPK, "hex");
+				const key = ec.keyFromPublic(input.publicKey, "hex");
 				if (!key.verify(preImage, input.signature)) return result(RESULT.TX08); // signature not valid
 			} catch {
 				return result(RESULT.TX08);
@@ -243,7 +232,7 @@ function isCoinbaseTxValid(params, coinbaseTx) {
 }
 
 // assuming it is not coinbase
-function isTransactionValid(params, transaction) {
+function isTransactionValid(params, transactions, transaction) {
 	if (!transaction.inputs.length || !transaction.outputs.length) return result(RESULT.TX00);
 	if (transaction.hash !== calculateTransactionHash(transaction)) return result(RESULT.TX01); // hash is invalid
 	if (!transaction.version || !transaction.timestamp) return result(RESULT.TX02);
@@ -251,14 +240,15 @@ function isTransactionValid(params, transaction) {
 	for (const output of transaction.outputs)
 		if (!isAddressValid(params, output.address)) return result(RESULT.TX05);
 
-	// check signature
-	const senderPK = transaction.inputs[0].publicKey;
-	const preImage = calculateTransactionPreImage(transaction);
-
 	for (const input of transaction.inputs) {
-		if (input.publicKey !== senderPK) return result(RESULT.TX07); // only one sender allowed (for now)
+		const TXO = findTXO(input, transactions);
+		if (!TXO) return result(RESULT.TX03, [input.txHash, input.outIndex]);
+	}
+	// check signature
+	const preImage = calculateTransactionPreImage(transaction);
+	for (const input of transaction.inputs) {
 		try {
-			const key = ec.keyFromPublic(senderPK, "hex");
+			const key = ec.keyFromPublic(input.publicKey, "hex");
 			if (!key.verify(preImage, input.signature)) return result(RESULT.TX08); // signature not valid
 		} catch {
 			return result(RESULT.TX08);

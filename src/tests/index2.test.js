@@ -288,8 +288,8 @@ test("tx and block validations", () => {
 	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]);
 	addBlock(blockchain, block1);
 
-	expect(isTransactionValid(params, tx1).code).toBe(RESULT.VALID);
-	expect(isTransactionValid(params, tx2).code).toBe(RESULT.VALID);
+	expect(isTransactionValid(params, transactions, tx1).code).toBe(RESULT.VALID);
+	expect(isTransactionValid(params, transactions, tx2).code).toBe(RESULT.VALID);
 	expect(isCoinbaseTxValid(params, cb1).code).toBe(RESULT.VALID);
 	expect(isBlockValidInBlockchain(params, blockchain, genesis).code).toBe(RESULT.VALID);
 	expect(isBlockValidInBlockchain(params, blockchain, block1).code).toBe(RESULT.VALID);
@@ -303,7 +303,7 @@ test("tx and block validations", () => {
 	const block2 = mineNewBlock(params, blockchain, block1, [cb2, tx3]);
 	addBlock(blockchain, block2);
 
-	expect(isTransactionValid(params, tx3).code).toBe(RESULT.VALID);
+	expect(isTransactionValid(params, transactions, tx3).code).toBe(RESULT.VALID);
 	expect(isCoinbaseTxValid(params, cb2).code).toBe(RESULT.VALID);
 	expect(isBlockValidInBlockchain(params, blockchain, genesis).code).toBe(RESULT.VALID);
 	expect(isBlockValidInBlockchain(params, blockchain, block1).code).toBe(RESULT.VALID);
@@ -312,5 +312,5 @@ test("tx and block validations", () => {
 	const tx4 = candsTx(params, blockchain, block2, transactions, bobsk, tomad, 22, 0);
 	transactions.push(tx4);
 
-	expect(isTransactionValid(params, tx4).code).toBe(RESULT.VALID);
+	expect(isTransactionValid(params, transactions, tx4).code).toBe(RESULT.VALID);
 });
