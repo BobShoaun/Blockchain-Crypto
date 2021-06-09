@@ -237,13 +237,21 @@ function isTransactionValid(params, transactions, transaction) {
 	if (transaction.hash !== calculateTransactionHash(transaction)) return result(RESULT.TX01); // hash is invalid
 	if (!transaction.version || !transaction.timestamp) return result(RESULT.TX02);
 
-	for (const output of transaction.outputs)
+	let totalOutput = 0;
+	for (const output of transaction.outputs) {
 		if (!isAddressValid(params, output.address)) return result(RESULT.TX05);
+		totalOutput += output.amount;
+	}
 
+	let totalInput = 0;
 	for (const input of transaction.inputs) {
 		const TXO = findTXO(input, transactions);
 		if (!TXO) return result(RESULT.TX03, [input.txHash, input.outIndex]);
+		if (TXO.address !== getAddressFromPKHex(params, input.publicKey)) return result(RESULT.TX04);
+		totalInput += TXO.amount;
 	}
+
+	if (totalInput < totalOutput) return result(RESULT.TX06, [totalInput, totalOutput]);
 	// check signature
 	const preImage = calculateTransactionPreImage(transaction);
 	for (const input of transaction.inputs) {
