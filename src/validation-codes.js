@@ -70,7 +70,7 @@ const result = (code, args) => {
 		case RESULT.CB03:
 			return { code, msg: "invalid output length" };
 		case RESULT.CB04:
-			return { code, msg: "invalid miner addres" };
+			return { code, msg: "invalid miner address" };
 		case RESULT.CB05:
 			return { code, msg: `coinbase amt of ${args[0]} larger than actual ${args[1]}` };
 		case RESULT.BC00:
