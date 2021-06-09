@@ -33,7 +33,7 @@ function getPreviousBlock(blockchain, block) {
 	throw Error("no prev block found in blockchain");
 }
 
-// get highest and earliest valid block in the chain
+// get highest and earliest valid block in the chain, aka best chain
 function getHighestValidBlock(params, blockchain) {
 	if (!blockchain.length) return null;
 	const maxHeight = blockchain[blockchain.length - 1].height;
