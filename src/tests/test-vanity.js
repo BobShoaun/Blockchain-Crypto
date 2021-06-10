@@ -17,7 +17,17 @@ const params = {
 	maxDiffCorrFact: 4,
 };
 
-const regex = /^[8,9]b[0,o,O]b/i;
+// const regex = /^[8,9]b[0,o,O]b/i;
+// const regex = /^[8,9]hell[0,o,O]/i;
+const regex = /^[8,9]fuck/i;
+const limit = 1000000;
 
-const keys = generateVanityAddress(params, regex);
+let keys = null;
+for (keys of generateVanityAddress(params, regex, limit)) {
+	process.stdout.clearLine();
+	process.stdout.cursorTo(0);
+	process.stdout.write(keys.address);
+}
+process.stdout.clearLine();
+process.stdout.cursorTo(0);
 console.log(keys);
