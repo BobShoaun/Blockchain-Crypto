@@ -93,7 +93,7 @@ function calculateBlockDifficulty(params, blockchain, block) {
 	let correctionFactor = targetTimeDiff / timeDiff;
 	correctionFactor = Math.min(correctionFactor, params.maxDiffCorrFact); // clamp correctionfactor
 	correctionFactor = Math.max(correctionFactor, params.minDiffCorrFact);
-	return prevBlock.difficulty * correctionFactor; // new difficulty
+	return Math.max(prevBlock.difficulty * correctionFactor, params.initBlkDiff); // new difficulty
 }
 
 function calculateHashTarget(params, block) {
