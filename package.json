@@ -1,6 +1,6 @@
 {
 	"name": "blockcrypto",
-	"version": "3.0.2",
+	"version": "3.0.3",
 	"description": "Blockchain framework for making your own cryptocurrency in Node.js",
 	"main": "index.js",
 	"dependencies": {
