@@ -138,10 +138,10 @@ function isBlockchainValid(params, blockchain, headBlock) {
 }
 
 // is the block valid in the context of the entire blockchain?
-function isBlockValidInBlockchain(params, blockchain, block) {
+function isBlockValidInBlockchain(params, blockchain, block, proposal) {
 	if (block.height < 0) return result(RESULT.BK00); // height invalid
 	if (!block.version || !block.timestamp) return result(RESULT.BK01);
-	if (!block.transactions.length) return result(RESULT.BK02); // must have at least 1 tx (coinbase)
+	if (!proposal && !block.transactions.length) return result(RESULT.BK02); // must have at least 1 tx (coinbase)
 	if (block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // block hash invalid
 	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
 		return result(RESULT.BK04);
