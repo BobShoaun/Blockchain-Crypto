@@ -141,8 +141,8 @@ function isBlockchainValid(params, blockchain, headBlock) {
 function isBlockValidInBlockchain(params, blockchain, block, proposal) {
 	if (block.height < 0) return result(RESULT.BK00); // height invalid
 	if (!block.version || !block.timestamp) return result(RESULT.BK01);
-	if (!proposal && !block.transactions.length) return result(RESULT.BK02); // must have at least 1 tx (coinbase)
-	if (block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // block hash invalid
+	if (!block.transactions.length) return result(RESULT.BK02); // must have at least 1 tx (coinbase)
+	if (!proposal && block.hash !== calculateBlockHash(block)) return result(RESULT.BK03); // block hash invalid
 	if (block.difficulty !== calculateBlockDifficulty(params, blockchain, block))
 		return result(RESULT.BK04);
 	if (block.merkleRoot !== calculateMerkleRoot(block.transactions.map(tx => tx.hash)))
