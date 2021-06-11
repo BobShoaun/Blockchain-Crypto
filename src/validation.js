@@ -149,8 +149,11 @@ function isBlockValidInBlockchain(params, blockchain, block, proposal) {
 		return result(RESULT.BK06);
 
 	const hashTarget = calculateHashTarget(params, block);
-	const blockHash = hexToBigInt(block.hash);
-	if (blockHash > hashTarget) return result(RESULT.BK05, [hashTarget]); // block hash not within difficulty
+
+	if (!proposal) {
+		const blockHash = hexToBigInt(block.hash);
+		if (blockHash > hashTarget) return result(RESULT.BK05, [hashTarget]); // block hash not within difficulty
+	}
 
 	let blkInAmt = 0;
 	let blkOutAmt = 0;
