@@ -248,8 +248,8 @@ test("confirmations and txblock", () => {
 	const block1 = mineNewBlock(params, blockchain, genesis, [cb1, tx1, tx2]);
 	addBlock(blockchain, block1);
 
-	expect(getBlockConfirmations(blockchain, block1)).toBe(1);
-	expect(getBlockConfirmations(blockchain, genesis)).toBe(2);
+	expect(getBlockConfirmations(params, blockchain, block1)).toBe(1);
+	expect(getBlockConfirmations(params, blockchain, genesis)).toBe(2);
 
 	const tx3 = candsTx(params, blockchain, block1, transactions, ginsk, tomad, 2, 0);
 	transactions.push(tx3);
@@ -260,9 +260,9 @@ test("confirmations and txblock", () => {
 	const block2 = mineNewBlock(params, blockchain, block1, [cb2, tx3]);
 	addBlock(blockchain, block2);
 
-	expect(getBlockConfirmations(blockchain, genesis)).toBe(3);
-	expect(getBlockConfirmations(blockchain, block1)).toBe(2);
-	expect(getBlockConfirmations(blockchain, block2)).toBe(1);
+	expect(getBlockConfirmations(params, blockchain, genesis)).toBe(3);
+	expect(getBlockConfirmations(params, blockchain, block1)).toBe(2);
+	expect(getBlockConfirmations(params, blockchain, block2)).toBe(1);
 
 	const tx4 = candsTx(params, blockchain, block2, transactions, bobsk, tomad, 22, 0);
 	transactions.push(tx4);

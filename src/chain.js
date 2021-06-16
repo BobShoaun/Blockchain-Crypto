@@ -49,7 +49,25 @@ function getHighestValidBlock(params, blockchain) {
 // returns new blockchain with invalid and unecessasary blocks removed
 function pruneBlockchain(blockchain, headBlock, depth) {}
 
-function getBlockConfirmations(blockchain, block) {
+function getBestChain(params, blockchain) {
+	const headBlock = getHighestValidBlock(params, blockchain);
+	const bestChain = [];
+	let currHash = headBlock.hash;
+	for (let i = blockchain.length - 1; i >= 0; i--) {
+		if (blockchain[i].hash !== currHash) continue;
+		bestChain.push(blockchain[i]);
+		currHash = blockchain[i].previousHash;
+	}
+	return bestChain; // in reverse order
+}
+
+function getBlockConfirmations(params, blockchain, block) {
+	const headBlock = getHighestValidBlock(params, blockchain);
+
+	if (getBestChain(params, blockchain).some(b => b.hash === block.hash)) {
+		// in best chain
+		return headBlock.height - block.height + 1;
+	}
 	let confirmations = 0;
 	let currHash = block.hash;
 	for (const blk of blockchain) {
@@ -69,6 +87,7 @@ module.exports = {
 	getPreviousBlock,
 	getHighestValidBlock,
 	getBlockConfirmations,
+	getBestChain,
 };
 
 const { calculateUTXOSet } = require("./utxo.js");
