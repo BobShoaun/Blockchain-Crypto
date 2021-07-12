@@ -19,27 +19,25 @@ const EC = require("elliptic").ec;
 const ec = new EC("secp256k1");
 
 function isAddressValid(params, address) {
-	const pkHash = base58ToHex(address);
-	const checksum = pkHash.slice(pkHash.length - params.checksumLen);
-	const version = pkHash.slice(0, pkHash.length - params.checksumLen);
-	const check = SHA256(version).toString();
-	return check.slice(0, params.checksumLen) === checksum;
-}
-
-// check if transaction set chosen is valid for the block before mining it.
-function isProposedBlockValid(blockchain, prevBlock, transactions) {
-	const utxoSet = calculateUTXOSet(blockchain, prevBlock);
-	for (const utxo of utxoSet) {
-	}
-
-	for (const transaction of transactions) {
-		for (const input of transaction.inputs) {
-			// if (input.hash in )
-		}
+	try {
+		const pkHash = base58ToHex(address);
+		const checksum = pkHash.slice(pkHash.length - params.checksumLen);
+		const version = pkHash.slice(0, pkHash.length - params.checksumLen);
+		const check = SHA256(version).toString();
+		return check.slice(0, params.checksumLen) === checksum;
+	} catch {
+		return false;
 	}
 }
 
-function isMempoolTxValid(params, blockchain, headBlock, transaction) {}
+function isSignatureValid(signature, pkHex, data) {
+	try {
+		const key = ec.keyFromPublic(pkHex, "hex");
+		return key.verify(data, signature);
+	} catch {
+		return false;
+	}
+}
 
 function isBlockchainValid(params, blockchain, headBlock) {
 	let currBlockHash = headBlock.hash;
@@ -221,10 +219,6 @@ function isBlockValidInBlockchain(params, blockchain, block, proposal) {
 	return result(RESULT.VALID);
 }
 
-function isBlockValid(params, block) {}
-
-function isTransactionValidInBlockchain(blockchain, minedBlock, transaction) {}
-
 function isCoinbaseTxValid(params, coinbaseTx) {
 	if (coinbaseTx.hash !== calculateTransactionHash(coinbaseTx)) return result(RESULT.CB00); // hash is invalid
 	if (!coinbaseTx.version || !coinbaseTx.timestamp) return result(RESULT.CB01);
@@ -270,12 +264,9 @@ function isTransactionValid(params, transactions, transaction) {
 
 module.exports = {
 	isAddressValid,
-	isProposedBlockValid,
 	isBlockchainValid,
 	isBlockValidInBlockchain,
-	isBlockValid,
 	isTransactionValid,
-	isTransactionValidInBlockchain,
 	isCoinbaseTxValid,
-	isMempoolTxValid,
+	isSignatureValid,
 };

@@ -5,26 +5,35 @@ const RESULT = {
 	BK03: 3,
 	BK04: 4,
 	BK05: 5,
-	BK06: 25,
-	TX00: 6,
-	TX01: 7,
-	TX02: 8,
-	TX03: 9,
-	TX04: 10,
-	TX05: 11,
-	TX06: 12,
-	TX07: 13,
-	TX08: 14,
-	CB00: 15,
-	CB01: 16,
-	CB02: 17,
-	CB03: 18,
-	CB04: 19,
-	CB05: 20,
-	BC00: 21,
-	BC01: 22,
-	BC02: 23,
-	VALID: 24,
+	BK06: 6,
+	BK07: 7,
+
+	TX00: 100,
+	TX01: 101,
+	TX02: 102,
+	TX03: 103,
+	TX04: 104,
+	TX05: 105,
+	TX06: 106,
+	TX07: 107,
+	TX08: 108,
+	TX09: 109,
+
+	CB00: 200,
+	CB01: 201,
+	CB02: 202,
+	CB03: 203,
+	CB04: 204,
+	CB05: 205,
+	CB06: 206,
+
+	BC00: 300,
+	BC01: 301,
+	BC02: 302,
+	BC03: 303,
+	BC04: 304,
+
+	VALID: 400,
 };
 
 const result = (code, args) => {
@@ -32,7 +41,7 @@ const result = (code, args) => {
 		case RESULT.BKOO:
 			return { code, msg: "invalid height" };
 		case RESULT.BK01:
-			return { code, msg: "no version or timestamp" };
+			return { code, msg: "no version" };
 		case RESULT.BK02:
 			return { code, msg: "no transactions" };
 		case RESULT.BK03:
@@ -61,6 +70,8 @@ const result = (code, args) => {
 			return { code, msg: "more than one sender" };
 		case RESULT.TX08:
 			return { code, msg: "invalid signature" };
+		case RESULT.TX09:
+			return { code, msg: "output amount is negative or zero" };
 		case RESULT.CB00:
 			return { code, msg: "invalid hash" };
 		case RESULT.CB01:
@@ -73,12 +84,18 @@ const result = (code, args) => {
 			return { code, msg: "invalid miner address" };
 		case RESULT.CB05:
 			return { code, msg: `coinbase amt of ${args[0]} larger than actual ${args[1]}` };
+		case RESULT.CB06:
+			return { code, msg: "output amount is negative or zero" };
 		case RESULT.BC00:
 			return { code, msg: "invalid height w.r.t. previous block" };
 		case RESULT.BC01:
 			return { code, msg: "invalid timestamp w.r.t. previous block" };
 		case RESULT.BC02:
 			return { code, msg: "no genesis block" };
+		case RESULT.BC03:
+			return { code, msg: "previous block not within unconfirmed pool" };
+		case RESULT.BC04:
+			return { code, msg: "block already in unconfirmed pool (dupe)" };
 		case RESULT.VALID:
 			return { code, msg: "valid!" };
 	}
