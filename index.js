@@ -2,6 +2,7 @@
 
 module.exports = {
 	...require("./src/key"),
+	...require("./src/wallet"),
 	...require("./src/chain"),
 	...require("./src/mine"),
 	...require("./src/transaction"),
