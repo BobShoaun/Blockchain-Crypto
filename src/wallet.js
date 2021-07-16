@@ -1,10 +1,7 @@
-const EC = require("elliptic").ec;
-const ec = new EC("secp256k1");
-
 const bip39 = require("bip39");
 const HdKey = require("hdkey");
 
-const { hexToBase58 } = require("./key");
+const { getAddressFromPKHex } = require("./key");
 
 const generateHdKey = async (password, wordlist) => {
 	bip39.setDefaultWordlist(wordlist);
@@ -21,21 +18,19 @@ const getHdKey = async (mnemonic, password) => {
 };
 
 // extended keys must be of root (master) level
-const deriveKeys = (params, extendedPrivateKey, account, change, index) => {
-	const hdKey = HdKey.fromExtendedKey(extendedPrivateKey);
+const deriveKeys = (params, xprv, account, change, index) => {
+	const hdKey = HdKey.fromExtendedKey(xprv);
 	const childKeys = hdKey.derive(
 		`m/${params.derivPurpose}/${params.derivCoinType}/${account}'/${change}/${index}`
 	);
-	return childKeys;
-};
-
-const getSeed = async (mnemonic, password) => {
-	const seed = (await bip39.mnemonicToSeed(mnemonic, "mnemonic" + password)).toString("hex");
-	return seed;
-};
-
-const getMnemonic = async seed => {
-	bip39.entropyToMnemonic();
+	return {
+		xprv: childKeys.privateExtendedKey,
+		xpub: childKeys.publicExtendedKey,
+		sk: childKeys.privateKey.toString("hex"),
+		pk: childKeys.publicKey.toString("hex"),
+		chainCode: childKeys.chainCode.toString("hex"),
+		addr: getAddressFromPKHex(params, childKeys.publicKey.toString("hex")),
+	};
 };
 
 const validateMnemonic = (mnemonic, wordlist) => {

@@ -1,4 +1,11 @@
-const { generateHdKey, getHdKey, validateMnemonic, deriveKeys } = require("../../index");
+const {
+	generateHdKey,
+	getHdKey,
+	validateMnemonic,
+	deriveKeys,
+	getKeys,
+	hexToBase58,
+} = require("../../index");
 
 // consensus parameters
 const params = {
@@ -25,9 +32,11 @@ const params = {
 test("hd wallet generation random", async () => {
 	const { mnemonic, xprv, xpub } = await generateHdKey("", "english");
 	expect(validateMnemonic(mnemonic, "english")).toBe(true);
-	const childKey = deriveKeys(params, xpub, 0, 0, 0);
-	console.log(childKey.privateExtendedKey);
-	console.log(childKey.publicExtendedKey);
+	const { sk, pk, chainCode, addr } = deriveKeys(params, xprv, 0, 0, 0);
+
+	const { sk: sk2, pk: pk2, address: addr2 } = getKeys(params, hexToBase58(sk));
+	expect(pk2).toBe(pk);
+	expect(addr2).toBe(addr);
 });
 
 test("get hd wallet and wordlist validation", async () => {
@@ -44,3 +53,12 @@ test("get hd wallet and wordlist validation", async () => {
 		"xprv9s21ZrQH143K299dFZPLphu2pix74eRoQa4e67jN93UDfSJ7P2XEVhHVn2binTJhPbxkCKTLpE54XVk6a9fZjSBg4RVLAhBZQ3sWnfkb7q4";
 	expect(xprv).toBe(xprv2);
 });
+
+// test("derive child keys", async () => {
+// 	const mnemonicEnglish =
+// 		"accuse visa village supply tell move quality increase board critic predict opera";
+// 	const { xprv } = await getHdKey(mnemonicEnglish, "");
+// 	console.log(xprv);
+// 	const key = deriveKeys(xprv, `m/${params.derivPurpose}/${params.derivCoinType}/${0}'/${0}/${1}`);
+// 	console.log(key);
+// });
