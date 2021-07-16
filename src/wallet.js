@@ -21,7 +21,7 @@ const getHdKey = async (mnemonic, password) => {
 const deriveKeys = (params, xprv, account, change, index) => {
 	const hdKey = HdKey.fromExtendedKey(xprv);
 	const childKeys = hdKey.derive(
-		`m/${params.derivPurpose}/${params.derivCoinType}/${account}'/${change}/${index}`
+		`m/${params.derivPurpose}'/${params.derivCoinType}'/${account}'/${change}/${index}`
 	);
 	return {
 		xprv: childKeys.privateExtendedKey,
