@@ -78,6 +78,12 @@ function signTransaction(transaction, privateKey) {
 	return keyPair.sign(preImage, "hex").toDER("hex");
 }
 
+function signTransactionHex(transaction, secretKey) {
+	const preImage = calculateTransactionPreImage(transaction); // preimage hash
+	const keyPair = ec.keyFromPrivate(secretKey, "hex");
+	return keyPair.sign(preImage, "hex").toDER("hex");
+}
+
 function getTxBlock(blockchain, headBlockHash, transaction) {
 	let prevBlockHash = headBlockHash;
 	for (let i = blockchain.length - 1; i >= 0; i--) {
@@ -133,4 +139,5 @@ module.exports = {
 	getAddressTxs,
 	createTransaction,
 	getTransactionFees,
+	signTransactionHex,
 };
