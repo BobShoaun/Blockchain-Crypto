@@ -1,8 +1,8 @@
-import bigintConversion from "bigint-conversion";
+import { bigintToHex } from "bigint-conversion";
 import bs58 from "bs58";
 
 export const bigIntToHex64 = (num) => {
-  const hex = bigintConversion.bigintToHex(num);
+  const hex = bigintToHex(num);
   if (hex.length < 64) return Array(64 - hex.length + 1).join("0") + hex;
   return hex;
 };

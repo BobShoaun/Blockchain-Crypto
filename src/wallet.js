@@ -1,11 +1,11 @@
-import bip39 from "bip39";
+import { setDefaultWordlist, generateMnemonic, mnemonicToSeed } from "bip39";
 import HdKey from "hdkey";
 import { getAddressFromPublicKey } from "./key.js";
 
 export const generateHdKeys = async (password, wordList) => {
-  bip39.setDefaultWordlist(wordList);
-  const mnemonic = bip39.generateMnemonic();
-  const seedBuf = await bip39.mnemonicToSeed(mnemonic, "mnemonic" + password);
+  setDefaultWordlist(wordList);
+  const mnemonic = generateMnemonic();
+  const seedBuf = await mnemonicToSeed(mnemonic, "mnemonic" + password);
   const masterKey = HdKey.fromMasterSeed(seedBuf);
   return {
     mnemonic,
@@ -15,7 +15,7 @@ export const generateHdKeys = async (password, wordList) => {
 };
 
 export const getHdKeys = async (mnemonic, password) => {
-  const seedBuf = await bip39.mnemonicToSeed(mnemonic, "mnemonic" + password);
+  const seedBuf = await mnemonicToSeed(mnemonic, "mnemonic" + password);
   const masterKey = HdKey.fromMasterSeed(seedBuf);
   return {
     xprv: masterKey.privateExtendedKey,

@@ -1,5 +1,5 @@
 import SHA256 from "crypto-js/sha256.js";
-import bip39 from "bip39";
+import { setDefaultWordlist, validateMnemonic } from "bip39";
 import { base58ToHex } from "./helpers.js";
 import elliptic from "elliptic";
 
@@ -28,6 +28,6 @@ export const isSignatureValid = (signature, publicKey, data) => {
 
 // renew
 export const isMnemonicValid = (mnemonic, wordlist) => {
-  bip39.setDefaultWordlist(wordlist);
-  return bip39.validateMnemonic(mnemonic);
+  setDefaultWordlist(wordlist);
+  return validateMnemonic(mnemonic);
 };
