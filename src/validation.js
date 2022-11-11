@@ -26,7 +26,6 @@ export const isSignatureValid = (signature, publicKey, data) => {
   }
 };
 
-// renew
 export const isMnemonicValid = (mnemonic, wordlist) => {
   setDefaultWordlist(wordlist);
   return validateMnemonic(mnemonic);

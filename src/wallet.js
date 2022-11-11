@@ -23,7 +23,6 @@ export const getHdKeys = async (mnemonic, password) => {
   };
 };
 
-// renew
 // extended keys must be of root (master) level
 export const deriveKeys = (params, xprv, account, change, index) => {
   const hdKey = HdKey.fromExtendedKey(xprv);

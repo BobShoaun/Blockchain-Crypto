@@ -1,4 +1,7 @@
 import SHA256 from "crypto-js/sha256.js";
+import elliptic from "elliptic";
+
+const ec = new elliptic.ec("secp256k1");
 
 export const createTransaction = (params, inputs, outputs, message = null) => ({
   timestamp: Date.now(),
@@ -35,7 +38,6 @@ export const calculateTransactionPreImage = (transaction) => {
   return calculateTransactionHash(txCopy);
 };
 
-// renew
 export const signTransaction = (transaction, secretKey) => {
   const preImage = calculateTransactionPreImage(transaction); // preimage hash
   const keyPair = ec.keyFromPrivate(secretKey, "hex");

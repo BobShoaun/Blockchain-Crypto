@@ -14,7 +14,6 @@ export const getAddressFromPublicKey = (params, publicKey) => {
   return hexToBase58(pkHash);
 };
 
-// renew
 export const generateKeys = (params) => {
   const keyPair = ec.genKeyPair();
   const secretKey = keyPair.getPrivate("hex");
@@ -23,7 +22,6 @@ export const generateKeys = (params) => {
   return { secretKey, publicKey, address };
 };
 
-// renew
 export const getKeys = (params, _secretKey) => {
   const keyPair = ec.keyFromPrivate(_secretKey, "hex");
   const secretKey = keyPair.getPrivate("hex");
