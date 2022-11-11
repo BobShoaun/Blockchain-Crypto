@@ -1,6 +1,6 @@
 {
   "name": "blockcrypto",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Blockchain framework for making your own cryptocurrency in Node.js",
   "main": "index.js",
   "type": "module",
