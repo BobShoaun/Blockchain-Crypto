@@ -2,7 +2,14 @@
   "name": "blockcrypto",
   "version": "4.0.2",
   "description": "Blockchain framework for making your own cryptocurrency in Node.js",
-  "main": "index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "type": "module",
   "dependencies": {
     "bigint-conversion": "^2.1.12",
@@ -19,6 +26,8 @@
     "testEnvironment": "node"
   },
   "scripts": {
+    "build": "rollup --config",
+    "deploy": "npm run build && npm publish",
     "test": "jest index3.test.js --verbose false -- --silent=false"
   },
   "keywords": [
