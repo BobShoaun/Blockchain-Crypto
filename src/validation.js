@@ -1,6 +1,6 @@
 import SHA256 from "crypto-js/sha256.js";
 import { setDefaultWordlist, validateMnemonic } from "bip39";
-import { base58ToHex } from "./helpers.js";
+import { base58ToHex } from "./conversion.js";
 import elliptic from "elliptic";
 
 const ec = new elliptic.ec("secp256k1");

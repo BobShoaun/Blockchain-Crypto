@@ -6,6 +6,8 @@ import {
   createTransaction,
   isAddressValid,
   generateHdKeys,
+  getTransactionSize,
+  getBlockSize,
 } from "../../index.js";
 
 const mainnetParams = {
@@ -55,13 +57,5 @@ const mainnetParams = {
   },
 };
 
-const keys = generateKeys(mainnetParams);
-console.log(keys);
-console.log(
-  getKeys(
-    mainnetParams,
-    "0097115d63abd321cd149de798714d57163be842fec7896425fa850091d702ce"
-  )
-);
-
-console.log(bigIntToHex64(1n));
+console.log(getTransactionSize(mainnetParams.genesisBlock.transactions[0]));
+console.log(getBlockSize(mainnetParams.genesisBlock));

@@ -1,8 +1,10 @@
 import SHA256 from "crypto-js/sha256.js";
-import { hexToBigInt } from "./helpers.js";
+import sizeof from "object-sizeof";
+import { hexToBigInt } from "./conversion.js";
+import { getCleanTransaction } from "./transaction.js";
 
 // function mutates array
-export const calculateMerkleRoot = (hashes) => {
+export const calculateMerkleRoot = hashes => {
   if (!hashes) throw Error("invalid hashes array when calculating merkle root");
 
   if (hashes.length % 2 === 1)
@@ -22,7 +24,7 @@ export const calculateMerkleRoot = (hashes) => {
   return calculateMerkleRoot(parentHashes);
 };
 
-export const calculateBlockHash = (block) =>
+export const calculateBlockHash = block =>
   SHA256(
     block.height +
       block.previousHash +
@@ -36,7 +38,7 @@ export const calculateBlockHash = (block) =>
 export const createBlock = (params, parentBlock, difficulty, transactions) => ({
   height: parentBlock.height + 1,
   previousHash: parentBlock.hash,
-  merkleRoot: calculateMerkleRoot(transactions.map((tx) => tx.hash)),
+  merkleRoot: calculateMerkleRoot(transactions.map(tx => tx.hash)),
   timestamp: Date.now(),
   version: params.version,
   difficulty,
@@ -83,3 +85,30 @@ export const calculateHashTarget = (params, block) => {
     return initHashTarget;
   return hashTarget;
 };
+
+export const getCleanBlock = ({
+  hash,
+  height,
+  previousHash,
+  merkleRoot,
+  timestamp,
+  version,
+  difficulty,
+  nonce,
+  transactions,
+}) => {
+  const _transactions = transactions.map(getCleanTransaction);
+  return {
+    hash,
+    height,
+    previousHash,
+    merkleRoot,
+    timestamp,
+    version,
+    difficulty,
+    nonce,
+    transactions: _transactions,
+  };
+};
+
+export const getBlockSize = block => sizeof(getCleanBlock(block));

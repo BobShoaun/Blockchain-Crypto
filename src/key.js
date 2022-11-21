@@ -1,4 +1,4 @@
-import { hexToBase58 } from "./helpers.js";
+import { hexToBase58 } from "./conversion.js";
 import SHA256 from "crypto-js/sha256.js";
 import RIPEMD160 from "crypto-js/ripemd160.js";
 import elliptic from "elliptic";
@@ -14,7 +14,7 @@ export const getAddressFromPublicKey = (params, publicKey) => {
   return hexToBase58(pkHash);
 };
 
-export const generateKeys = (params) => {
+export const generateKeys = params => {
   const keyPair = ec.genKeyPair();
   const secretKey = keyPair.getPrivate("hex");
   const publicKey = keyPair.getPublic().encodeCompressed("hex");
