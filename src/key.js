@@ -30,7 +30,7 @@ export const getKeys = (params, _secretKey) => {
   return { secretKey, publicKey, address };
 };
 
-function* generateVanityAddress(params, regex, limit) {
+export const generateVanityAddress = function* (params, regex, limit) {
   for (let i = 0; i < limit; i++) {
     const keys = generateKeys(params);
     if (regex.test(keys.address)) return yield keys;
@@ -39,6 +39,6 @@ function* generateVanityAddress(params, regex, limit) {
   throw new Error(
     `Vanity address not found after ${limit} tries, try again or decrease requirements.`
   );
-}
+};
 
 function generateBurnAddress(params, regex) {}
